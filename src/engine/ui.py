@@ -1,6 +1,7 @@
 import pygame
 from typing import List, Dict, Callable, Tuple
 from enum import Enum
+import os
 
 class UIElement:
     def __init__(self, x: int, y: int, width: int, height: int):
@@ -39,6 +40,9 @@ class Button(UIElement):
             
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                # Play click sound if available
+                if hasattr(self, 'ui_manager') and hasattr(self.ui_manager, 'click_sound'):
+                    self.ui_manager.play_click_sound()
                 self.callback()
                 return True
         return False
@@ -110,11 +114,41 @@ class UIManager:
     def __init__(self, game):
         self.game = game
         self.elements: List[UIElement] = []
+        self.click_sound = None
+        self.drop_sound = None
+        self.load_sounds()
+        
+    def load_sounds(self):
+        """Load UI sound effects"""
+        try:
+            audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
+            click_path = os.path.join(audio_dir, 'ui_click.wav')
+            drop_path = os.path.join(audio_dir, 'ui_click2.mp3')
+            
+            if os.path.exists(click_path):
+                self.click_sound = pygame.mixer.Sound(click_path)
+            if os.path.exists(drop_path):
+                self.drop_sound = pygame.mixer.Sound(drop_path)
+        except Exception as e:
+            print(f"Error loading UI sounds: {e}")
+            
+    def play_click_sound(self):
+        """Play the UI click sound effect"""
+        if self.click_sound:
+            self.click_sound.play()
+            
+    def play_drop_sound(self):
+        """Play the UI drop sound effect"""
+        if self.drop_sound:
+            self.drop_sound.play()
         
     def clear(self):
         self.elements = []
         
     def add_element(self, element: UIElement):
+        # Add reference to UI manager for sounds
+        if isinstance(element, Button):
+            element.ui_manager = self
         self.elements.append(element)
         return element
         
@@ -194,12 +228,38 @@ class UIManager:
             
             self.add_element(Label(50, 80, "Configure your combat sequence:", (220, 220, 220)))
             
-            if self.game.player and self.game.player.skills:
+            # Display current combat sequence
+            if self.game.player and self.game.player.combat_sequence:
                 y_pos = 120
                 for i, skill in enumerate(self.game.player.combat_sequence):
                     skill_name = skill.name if skill else "No skill selected"
                     self.add_element(Label(70, y_pos, f"{i+1}. {skill_name}", (220, 220, 220)))
+                    
+                    # Add a "Remove" button for each skill
+                    if skill:
+                        self.add_element(Button(
+                            280, y_pos, 80, 30, "Remove", 
+                            lambda idx=i: self._remove_skill_from_sequence(idx)
+                        ))
                     y_pos += 40
+            
+            # Available skills section
+            self.add_element(Label(400, 80, "Available Skills:", (220, 220, 220)))
+            
+            if self.game.player and self.game.player.skills:
+                y_pos = 120
+                for i, skill in enumerate(self.game.player.skills):
+                    # Don't show skills that are already in the sequence
+                    if skill not in self.game.player.combat_sequence:
+                        self.add_element(Label(420, y_pos, f"{skill.name}", (220, 220, 220)))
+                        
+                        # Add button to add skill to sequence
+                        self.add_element(Button(
+                            600, y_pos, 80, 30, "Add", 
+                            lambda s=skill: self._add_skill_to_sequence(s)
+                        ))
+                        
+                        y_pos += 40
             
             self.add_element(Button(screen_width // 2 - 80, screen_height - 120, 160, 40, "Start Combat", 
                                    lambda: self._start_combat()))
@@ -267,3 +327,37 @@ class UIManager:
         if self.game.combat_manager:
             self.game.combat_manager.start_new_battle()
             self.game.change_state(GameState.COMBAT)
+            
+    def _add_skill_to_sequence(self, skill):
+        """Add a skill to the combat sequence"""
+        if self.game.player:
+            # Find the first empty slot or add to end
+            for i in range(5):  # Max 5 skills in sequence
+                if i >= len(self.game.player.combat_sequence) or self.game.player.combat_sequence[i] is None:
+                    self.game.player.add_to_combat_sequence(skill, i)
+                    # Play the drop sound
+                    self.play_drop_sound()
+                    # Rebuild the UI to show changes
+                    self.build_ui_for_state(self.game.state)
+                    return
+                    
+            # If all slots are full, replace the last one
+            if len(self.game.player.combat_sequence) > 0:
+                self.game.player.add_to_combat_sequence(skill, len(self.game.player.combat_sequence) - 1)
+                # Play the drop sound
+                self.play_drop_sound()
+                # Rebuild the UI to show changes
+                self.build_ui_for_state(self.game.state)
+    
+    def _remove_skill_from_sequence(self, index):
+        """Remove a skill from the combat sequence at the given index"""
+        if self.game.player and 0 <= index < len(self.game.player.combat_sequence):
+            # Set the slot to None
+            self.game.player.combat_sequence[index] = None
+            
+            # Remove any None values at the end of the sequence
+            while self.game.player.combat_sequence and self.game.player.combat_sequence[-1] is None:
+                self.game.player.combat_sequence.pop()
+                
+            # Rebuild the UI to show changes
+            self.build_ui_for_state(self.game.state)

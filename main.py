@@ -94,6 +94,9 @@ class Button:
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.hovered and self.action:
+                # Play click sound before action
+                if ui_click_sound:
+                    ui_click_sound.play()
                 self.action()
                 return True
         return False
@@ -539,6 +542,10 @@ def end_drag(pos):
         for i in range(5):  # 5 slots for the sequence
             rect = get_skill_rect(i, False)
             if rect.collidepoint(pos):
+                # Play drop sound when dropping a skill in combat setup area
+                if ui_drop_sound:
+                    ui_drop_sound.play()
+                    
                 # Add to sequence at the selected position
                 if i >= len(combat_sequence):
                     combat_sequence.append(dragging_skill)
@@ -569,12 +576,25 @@ audio_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio")
 menu_music_path = os.path.join(audio_folder, "Project Donut.mp3")
 town_music_path = os.path.join(audio_folder, "Town Music.mp3")
 battle_music_path = os.path.join(audio_folder, "Battle Music 1.mp3")
+ui_click_path = os.path.join(audio_folder, "ui_click.wav")
+ui_drop_path = os.path.join(audio_folder, "ui_click2.mp3")
 
-# Check if music files exist
+# Check if audio files exist
 has_menu_music = os.path.exists(menu_music_path)
 has_town_music = os.path.exists(town_music_path)
 has_battle_music = os.path.exists(battle_music_path)
 current_music = None
+
+# Load UI sounds
+ui_click_sound = None
+ui_drop_sound = None
+try:
+    if os.path.exists(ui_click_path):
+        ui_click_sound = pygame.mixer.Sound(ui_click_path)
+    if os.path.exists(ui_drop_path):
+        ui_drop_sound = pygame.mixer.Sound(ui_drop_path)
+except Exception as e:
+    print(f"Error loading UI sound: {e}")
 
 # Set up music functions
 def play_menu_music():
