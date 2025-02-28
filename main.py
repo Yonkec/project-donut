@@ -6,9 +6,11 @@ A simple proof of concept using pygame
 import pygame
 import sys
 import random
+import os
 
-# Initialize pygame
+# Initialize pygame with mixer for audio
 pygame.init()
+pygame.mixer.init()
 
 # Constants
 SCREEN_WIDTH = 800
@@ -125,6 +127,9 @@ def start_new_game():
     
     combat_log = []
     game_state = CHARACTER
+    
+    # Switch from menu music to town music
+    play_town_music()
 
 def start_combat():
     global game_state, enemy, combat_log, combat_finished, player_turn, victory, combat_sequence_index
@@ -138,6 +143,9 @@ def start_combat():
     player_turn = True
     victory = False
     combat_sequence_index = 0  # Start from the first skill in sequence
+    
+    # Switch from town music to battle music
+    play_battle_music()
     
     # Choose random enemy type based on player level
     enemy_type = random.choice(["Goblin", "Orc", "Skeleton"])
@@ -165,7 +173,7 @@ def start_combat():
     game_state = COMBAT
 
 def execute_combat_turn():
-    global combat_log, player, enemy, combat_finished, player_turn, victory, game_state, combat_sequence_index
+    global combat_log, player, enemy, combat_finished, player_turn, victory, game_state, combat_sequence_index, current_music
     
     if combat_finished:
         return
@@ -226,6 +234,10 @@ def execute_combat_turn():
             victory = True
             game_state = RESULTS
             
+            # Play victory fanfare by stopping battle music
+            # Town music will play when returning to character screen
+            stop_music()
+            
         # Go to next skill in the sequence
         combat_sequence_index = (combat_sequence_index + 1) % len(combat_sequence)
     else:
@@ -240,6 +252,9 @@ def execute_combat_turn():
             combat_finished = True
             victory = False
             game_state = RESULTS
+            
+            # Stop battle music on defeat
+            stop_music()
     
     # Switch turns
     player_turn = not player_turn
@@ -249,6 +264,8 @@ def go_to_character():
     game_state = CHARACTER
     # Reset rewards flag when returning to character screen
     rewards_applied = False
+    # Play town music when returning to character screen
+    play_town_music()
 
 def draw_health_bar(x, y, width, height, current, maximum, color):
     outline_rect = pygame.Rect(x, y, width, height)
@@ -547,6 +564,48 @@ def end_drag(pos):
         drag_from_index = -1
     return False
 
+# Load audio
+audio_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio")
+menu_music_path = os.path.join(audio_folder, "Project Donut.mp3")
+town_music_path = os.path.join(audio_folder, "Town Music.mp3")
+battle_music_path = os.path.join(audio_folder, "Battle Music 1.mp3")
+
+# Check if music files exist
+has_menu_music = os.path.exists(menu_music_path)
+has_town_music = os.path.exists(town_music_path)
+has_battle_music = os.path.exists(battle_music_path)
+current_music = None
+
+# Set up music functions
+def play_menu_music():
+    global current_music
+    if has_menu_music and current_music != "menu":
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(menu_music_path)
+        pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+        current_music = "menu"
+
+def play_town_music():
+    global current_music
+    if has_town_music and current_music != "town":
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(town_music_path)
+        pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+        current_music = "town"
+
+def play_battle_music():
+    global current_music
+    if has_battle_music and current_music != "battle":
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(battle_music_path)
+        pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+        current_music = "battle"
+
+def stop_music():
+    global current_music
+    pygame.mixer.music.stop()
+    current_music = None
+
 # Main game loop
 running = True
 last_combat_action = 0
@@ -612,6 +671,14 @@ while running:
     if game_state != RESULTS:
         rewards_applied = False
     
+    # Handle music
+    if game_state == MAIN_MENU:
+        play_menu_music()
+    elif game_state == CHARACTER:
+        play_town_music()
+    elif game_state == COMBAT:
+        play_battle_music()
+    
     # Rendering
     if game_state == MAIN_MENU:
         draw_main_menu()
@@ -630,5 +697,8 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
+# Clean up before exiting
+stop_music()
+pygame.mixer.quit()
 pygame.quit()
 sys.exit()
