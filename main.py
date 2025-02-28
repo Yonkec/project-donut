@@ -329,10 +329,16 @@ def execute_combat_turn():
     player_turn = not player_turn
 
 def go_to_character():
-    global game_state, rewards_applied
+    global game_state, rewards_applied, animation_start_time, exp_animation_progress, gold_animation_progress, animation_complete
     game_state = CHARACTER
-    # Reset rewards flag when returning to character screen
+    
+    # Reset rewards and animation variables when returning to character screen
     rewards_applied = False
+    animation_start_time = 0
+    exp_animation_progress = 0
+    gold_animation_progress = 0
+    animation_complete = False
+    
     # Play town music when returning to character screen
     play_town_music()
 
@@ -547,6 +553,8 @@ def apply_rewards():
     return 0, 0, False
 
 def draw_results_screen():
+    global rewards_applied, animation_start_time, exp_animation_progress, gold_animation_progress, animation_complete
+    
     screen.fill(BG_COLOR)
     draw_text("Battle Results", 48, GOLD, 20, 20)
     
@@ -559,18 +567,118 @@ def draw_results_screen():
         # Calculate rewards
         exp_reward, gold_reward, leveled_up = apply_rewards()
         
-        # Display rewards
-        draw_text(f"Experience gained: {exp_reward}", 32, WHITE, SCREEN_WIDTH//2 - 150, 200)
-        draw_text(f"Gold gained: {gold_reward}", 32, GOLD, SCREEN_WIDTH//2 - 100, 250)
+        # Start animation when rewards are first applied
+        if rewards_applied and animation_start_time == 0:
+            animation_start_time = pygame.time.get_ticks()
+            exp_animation_progress = 0
+            gold_animation_progress = 0
+            animation_complete = False
         
-        if leveled_up:
-            draw_text(f"Level Up! You are now level {player['level']}!", 36, (255, 255, 100), SCREEN_WIDTH//2 - 220, 320)
-            draw_text("All stats increased!", 28, WHITE, SCREEN_WIDTH//2 - 110, 370)
+        # Update animation progress
+        if animation_start_time > 0 and not animation_complete:
+            current_time = pygame.time.get_ticks()
+            time_elapsed = (current_time - animation_start_time) / 1000.0  # Convert to seconds
+            
+            # Calculate progress for exp and gold bars (0.0 to 1.0)
+            exp_animation_progress = min(1.0, time_elapsed * animation_speed * 50)
+            gold_animation_progress = min(1.0, (time_elapsed - 1) * animation_speed * 50)  # Gold starts after exp
+            
+            # Check if animation is complete
+            if exp_animation_progress >= 1.0 and gold_animation_progress >= 1.0:
+                animation_complete = True
+                
+            # Play UI sounds at specific animation points
+            if exp_animation_progress == 1.0 and ui_click_sound and not animation_complete:
+                ui_click_sound.play()
+                
+        # Display rewards with animated progress
+        draw_text(f"Experience gained: {exp_reward}", 32, WHITE, SCREEN_WIDTH//2 - 150, 200)
+        
+        # EXP progress bar
+        bar_width = 400
+        bar_height = 25
+        bar_x = SCREEN_WIDTH//2 - 200
+        
+        # Draw experience progress bar
+        pygame.draw.rect(screen, (50, 50, 70), pygame.Rect(bar_x, 235, bar_width, bar_height))
+        fill_width = int(bar_width * (exp_animation_progress if not animation_complete else 1.0))
+        if fill_width > 0:
+            pygame.draw.rect(screen, (100, 100, 255), pygame.Rect(bar_x, 235, fill_width, bar_height))
+        pygame.draw.rect(screen, (150, 150, 200), pygame.Rect(bar_x, 235, bar_width, bar_height), 2)
+        
+        # Gold rewards
+        draw_text(f"Gold gained: {gold_reward}", 32, GOLD, SCREEN_WIDTH//2 - 100, 280)
+        
+        # Gold progress bar
+        pygame.draw.rect(screen, (50, 50, 70), pygame.Rect(bar_x, 315, bar_width, bar_height))
+        fill_width = int(bar_width * (gold_animation_progress if not animation_complete else 1.0))
+        if fill_width > 0:
+            pygame.draw.rect(screen, (220, 180, 40), pygame.Rect(bar_x, 315, fill_width, bar_height))
+        pygame.draw.rect(screen, (230, 200, 100), pygame.Rect(bar_x, 315, bar_width, bar_height), 2)
+        
+        # Sparkle animation when bars are filling
+        if not animation_complete:
+            sparkle_positions = []
+            if exp_animation_progress < 1.0:
+                # Add sparkles along the exp bar fill point
+                sparkle_x = bar_x + fill_width
+                sparkle_positions.append((sparkle_x, 235 + bar_height//2))
+                
+            if gold_animation_progress > 0 and gold_animation_progress < 1.0:
+                # Add sparkles along the gold bar fill point
+                gold_fill_width = int(bar_width * gold_animation_progress)
+                sparkle_x = bar_x + gold_fill_width
+                sparkle_positions.append((sparkle_x, 315 + bar_height//2))
+                
+            # Draw sparkles
+            for sparkle_pos in sparkle_positions:
+                sparkle_size = random.randint(2, 5)
+                sparkle_color = (255, 255, 255)
+                pygame.draw.circle(screen, sparkle_color, sparkle_pos, sparkle_size)
+        
+        # Level up notification (shown after gold animation completes)
+        if leveled_up and (animation_complete or gold_animation_progress > 0.8):
+            level_up_y = 370
+            level_up_alpha = min(255, int(255 * ((gold_animation_progress - 0.8) * 5))) if not animation_complete else 255
+            
+            # Create a temporary surface for alpha blending
+            level_text = f"Level Up! You are now level {player['level']}!"
+            font = pygame.font.SysFont(None, 36)
+            text_surf = font.render(level_text, True, (255, 255, 100))
+            
+            # Apply alpha blending
+            alpha_surf = pygame.Surface(text_surf.get_size(), pygame.SRCALPHA)
+            alpha_surf.fill((255, 255, 255, level_up_alpha))
+            text_surf.blit(alpha_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            
+            # Draw the text
+            text_rect = text_surf.get_rect(center=(SCREEN_WIDTH//2, level_up_y))
+            screen.blit(text_surf, text_rect)
+            
+            # Add stat increase text with slight delay
+            if gold_animation_progress > 0.9 or animation_complete:
+                stats_alpha = min(255, int(255 * ((gold_animation_progress - 0.9) * 10))) if not animation_complete else 255
+                
+                # Create a temporary surface for alpha blending
+                stats_text = "All stats increased!"
+                font = pygame.font.SysFont(None, 28)
+                stats_surf = font.render(stats_text, True, WHITE)
+                
+                # Apply alpha blending
+                alpha_surf = pygame.Surface(stats_surf.get_size(), pygame.SRCALPHA)
+                alpha_surf.fill((255, 255, 255, stats_alpha))
+                stats_surf.blit(alpha_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                
+                # Draw the text
+                stats_rect = stats_surf.get_rect(center=(SCREEN_WIDTH//2, level_up_y + 50))
+                screen.blit(stats_surf, stats_rect)
     else:
         draw_text("You were defeated...", 32, WHITE, SCREEN_WIDTH//2 - 130, 200)
         draw_text("Better luck next time!", 28, WHITE, SCREEN_WIDTH//2 - 120, 250)
     
-    continue_btn.draw()
+    # Only show continue button after animation completes or if defeated
+    if not victory or animation_complete or (animation_start_time > 0 and pygame.time.get_ticks() - animation_start_time > 3000):
+        continue_btn.draw()
 
 # Helper functions for skill dragging
 def get_skill_rect(index, from_available=True):
@@ -740,6 +848,13 @@ rewards_applied = False
 reward_exp = 0
 reward_gold = 0
 reward_level_up = False
+
+# Animation variables for results screen
+animation_start_time = 0
+exp_animation_progress = 0
+gold_animation_progress = 0
+animation_complete = False
+animation_speed = 0.01  # Controls speed of filling progress bars
 
 while running:
     current_time = pygame.time.get_ticks()
