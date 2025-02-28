@@ -7,6 +7,7 @@ import pygame
 import sys
 import random
 import os
+import json
 
 # Initialize pygame with mixer for audio
 pygame.init()
@@ -103,10 +104,76 @@ class Button:
 
 # Create buttons
 new_game_btn = Button(SCREEN_WIDTH//2 - 100, 250, 200, 50, "New Game", lambda: start_new_game())
-exit_btn = Button(SCREEN_WIDTH//2 - 100, 320, 200, 50, "Exit", lambda: sys.exit())
+load_game_btn = Button(SCREEN_WIDTH//2 - 100, 320, 200, 50, "Load Game", lambda: load_game())
+exit_btn = Button(SCREEN_WIDTH//2 - 100, 390, 200, 50, "Exit", lambda: sys.exit())
 combat_btn = Button(SCREEN_WIDTH//2 - 100, 520, 200, 50, "Enter Combat", lambda: start_combat())
 back_btn = Button(50, 500, 120, 40, "Back", lambda: go_to_character())
+save_game_btn = Button(SCREEN_WIDTH - 170, 500, 120, 40, "Save Game", lambda: save_game())
 continue_btn = Button(SCREEN_WIDTH//2 - 100, 500, 200, 50, "Continue", lambda: go_to_character())
+
+# Save file path
+save_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "player_save.json")
+
+def save_game():
+    """Save player data to a JSON file"""
+    try:
+        # Create a dictionary with all player data
+        save_data = {
+            "player": player,
+            "combat_sequence": combat_sequence
+        }
+        
+        # Write to file
+        with open(save_file_path, 'w') as f:
+            json.dump(save_data, f)
+            
+        # Show a quick message in the log
+        temp_message = "Game saved successfully!"
+        if 'combat_log' in globals() and isinstance(combat_log, list):
+            combat_log.append(temp_message)
+        print(temp_message)  # Also print to console
+        
+        # Play UI sound for feedback
+        if ui_click_sound:
+            ui_click_sound.play()
+            
+    except Exception as e:
+        error_msg = f"Error saving game: {e}"
+        print(error_msg)
+        if 'combat_log' in globals() and isinstance(combat_log, list):
+            combat_log.append(error_msg)
+
+def load_game():
+    """Load player data from a JSON file"""
+    global player, combat_sequence, game_state
+    
+    if not os.path.exists(save_file_path):
+        print("No save file found.")
+        return False
+        
+    try:
+        # Read from file
+        with open(save_file_path, 'r') as f:
+            save_data = json.load(f)
+            
+        # Update player and combat_sequence
+        if "player" in save_data:
+            player = save_data["player"]
+        if "combat_sequence" in save_data:
+            combat_sequence = save_data["combat_sequence"]
+            
+        # Switch to character screen
+        game_state = CHARACTER
+        
+        # Play town music
+        play_town_music()
+        
+        return True
+        
+    except Exception as e:
+        error_msg = f"Error loading game: {e}"
+        print(error_msg)
+        return False
 
 def draw_text(text, font_size, color, x, y):
     font = pygame.font.SysFont(None, font_size)
@@ -237,9 +304,8 @@ def execute_combat_turn():
             victory = True
             game_state = RESULTS
             
-            # Play victory fanfare by stopping battle music
-            # Town music will play when returning to character screen
-            stop_music()
+            # Play after combat music when enemy is defeated
+            play_after_combat_music()
             
         # Go to next skill in the sequence
         combat_sequence_index = (combat_sequence_index + 1) % len(combat_sequence)
@@ -256,8 +322,8 @@ def execute_combat_turn():
             victory = False
             game_state = RESULTS
             
-            # Stop battle music on defeat
-            stop_music()
+            # Play after combat music when player is defeated
+            play_after_combat_music()
     
     # Switch turns
     player_turn = not player_turn
@@ -287,11 +353,22 @@ def draw_health_bar(x, y, width, height, current, maximum, color):
     screen.blit(text, text_rect)
 
 def draw_main_menu():
-    screen.fill(BG_COLOR)
+    # Draw the title screen background image or fallback to solid color
+    if title_screen_img:
+        screen.blit(title_screen_img, (0, 0))
+    else:
+        screen.fill(BG_COLOR)
+        
+    # Draw title text and buttons over the background
     draw_text("Project Donut", 64, GOLD, SCREEN_WIDTH//2 - 160, 100)
     draw_text("Fantasy RPG", 36, WHITE, SCREEN_WIDTH//2 - 90, 170)
     new_game_btn.draw()
+    load_game_btn.draw()
     exit_btn.draw()
+    
+    # Show message if no save file exists
+    if not os.path.exists(save_file_path):
+        draw_text("No save file found", 20, (150, 150, 150), SCREEN_WIDTH//2 - 80, 370)
 
 def draw_skill_slot(index, x, y, width, height, skill=None):
     # Draw skill slot background
@@ -386,8 +463,9 @@ def draw_character_screen():
     # Instructions
     draw_text("Drag skills to build and reorder combat sequence", 20, (180, 180, 220), 50, 480)
     
-    # Button to start combat
+    # Buttons
     combat_btn.draw()
+    save_game_btn.draw()
 
 def draw_combat_screen():
     screen.fill(BG_COLOR)
@@ -576,13 +654,28 @@ audio_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio")
 menu_music_path = os.path.join(audio_folder, "Project Donut.mp3")
 town_music_path = os.path.join(audio_folder, "Town Music.mp3")
 battle_music_path = os.path.join(audio_folder, "Battle Music 1.mp3")
+after_combat_path = os.path.join(audio_folder, "After Combat.mp3")
 ui_click_path = os.path.join(audio_folder, "ui_click.wav")
 ui_drop_path = os.path.join(audio_folder, "ui_click2.mp3")
+
+# Load images
+images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
+title_screen_path = os.path.join(images_folder, "title_screen.png")
+
+# Load title screen image
+title_screen_img = None
+try:
+    if os.path.exists(title_screen_path):
+        title_screen_img = pygame.image.load(title_screen_path)
+        title_screen_img = pygame.transform.scale(title_screen_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+except Exception as e:
+    print(f"Error loading title screen image: {e}")
 
 # Check if audio files exist
 has_menu_music = os.path.exists(menu_music_path)
 has_town_music = os.path.exists(town_music_path)
 has_battle_music = os.path.exists(battle_music_path)
+has_after_combat_music = os.path.exists(after_combat_path)
 current_music = None
 
 # Load UI sounds
@@ -621,6 +714,14 @@ def play_battle_music():
         pygame.mixer.music.play(-1)  # -1 means loop indefinitely
         current_music = "battle"
 
+def play_after_combat_music():
+    global current_music
+    if has_after_combat_music and current_music != "after_combat":
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(after_combat_path)
+        pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+        current_music = "after_combat"
+
 def stop_music():
     global current_music
     pygame.mixer.music.stop()
@@ -652,9 +753,11 @@ while running:
         if event.type == pygame.MOUSEMOTION:
             if game_state == MAIN_MENU:
                 new_game_btn.check_hover(mouse_pos)
+                load_game_btn.check_hover(mouse_pos)
                 exit_btn.check_hover(mouse_pos)
             elif game_state == CHARACTER:
                 combat_btn.check_hover(mouse_pos)
+                save_game_btn.check_hover(mouse_pos)
             elif game_state == COMBAT and combat_finished:
                 back_btn.check_hover(mouse_pos)
             elif game_state == RESULTS:
@@ -663,6 +766,7 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if game_state == MAIN_MENU:
                 new_game_btn.handle_event(event)
+                load_game_btn.handle_event(event)
                 exit_btn.handle_event(event)
             elif game_state == CHARACTER:
                 # Check for drag start
@@ -672,13 +776,15 @@ while running:
                     
                 # Check for button press
                 combat_btn.handle_event(event)
+                save_game_btn.handle_event(event)
             elif game_state == COMBAT and combat_finished:
                 back_btn.handle_event(event)
             elif game_state == RESULTS:
                 continue_btn.handle_event(event)
                 
+        # Handle mouse button up for skill dragging
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            if game_state == CHARACTER:
+            if game_state == CHARACTER and dragging_skill:
                 end_drag(event.pos)
     
     # Combat timing
@@ -698,6 +804,8 @@ while running:
         play_town_music()
     elif game_state == COMBAT:
         play_battle_music()
+    elif game_state == RESULTS:
+        play_after_combat_music()
     
     # Rendering
     if game_state == MAIN_MENU:
