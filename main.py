@@ -485,6 +485,34 @@ def draw_combat_screen():
     draw_text(enemy["name"], 36, RED, SCREEN_WIDTH - 200, 80)
     draw_health_bar(SCREEN_WIDTH - 250, 120, 200, 30, enemy["current_hp"], enemy["max_hp"], RED)
     
+    # Display enemy image
+    enemy_type = None
+    for enemy_key in enemy_images.keys():
+        if enemy_key in enemy["name"]:
+            enemy_type = enemy_key
+            break
+    
+    if enemy_type and enemy_type in enemy_images:
+        # Calculate image size - scale while maintaining aspect ratio
+        enemy_img = enemy_images[enemy_type]
+        img_width, img_height = enemy_img.get_size()
+        
+        # Calculate scaling to fit in a 200x200 box
+        scale_factor = min(200 / img_width, 200 / img_height)
+        new_width = int(img_width * scale_factor)
+        new_height = int(img_height * scale_factor)
+        
+        # Scale image
+        scaled_img = pygame.transform.scale(enemy_img, (new_width, new_height))
+        
+        # Calculate position to center in the top-right area
+        img_x = SCREEN_WIDTH - 125 - (new_width // 2)
+        img_y = 180
+        
+        # Draw image with a border
+        pygame.draw.rect(screen, (80, 80, 100), (img_x - 5, img_y - 5, new_width + 10, new_height + 10))
+        screen.blit(scaled_img, (img_x, img_y))
+    
     # Combat sequence preview
     draw_text("Combat Sequence:", 24, (180, 180, 255), 50, 160)
     seq_width = 80
@@ -769,6 +797,9 @@ ui_drop_path = os.path.join(audio_folder, "ui_click2.mp3")
 # Load images
 images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
 title_screen_path = os.path.join(images_folder, "title_screen.png")
+goblin_path = os.path.join(images_folder, "goblin.png")
+orc_path = os.path.join(images_folder, "orc.png")
+skeleton_path = os.path.join(images_folder, "skeleton.png")
 
 # Load title screen image
 title_screen_img = None
@@ -778,6 +809,18 @@ try:
         title_screen_img = pygame.transform.scale(title_screen_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 except Exception as e:
     print(f"Error loading title screen image: {e}")
+
+# Load enemy images
+enemy_images = {}
+try:
+    if os.path.exists(goblin_path):
+        enemy_images["Goblin"] = pygame.image.load(goblin_path)
+    if os.path.exists(orc_path):
+        enemy_images["Orc"] = pygame.image.load(orc_path)
+    if os.path.exists(skeleton_path):
+        enemy_images["Skeleton"] = pygame.image.load(skeleton_path)
+except Exception as e:
+    print(f"Error loading enemy images: {e}")
 
 # Check if audio files exist
 has_menu_music = os.path.exists(menu_music_path)
