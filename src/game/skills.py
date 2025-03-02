@@ -1,5 +1,24 @@
 from typing import Dict, Optional
 import random
+import os
+import pygame
+
+# Initialize sound effects
+attack_sound = None
+heal_sound = None
+
+# Load sound effects
+try:
+    audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
+    attack_sound_path = os.path.join(audio_dir, 'attack.wav')
+    heal_sound_path = os.path.join(audio_dir, 'heal.wav')
+    
+    if os.path.exists(attack_sound_path):
+        attack_sound = pygame.mixer.Sound(attack_sound_path)
+    if os.path.exists(heal_sound_path):
+        heal_sound = pygame.mixer.Sound(heal_sound_path)
+except Exception as e:
+    print(f"Error loading skill sounds: {e}")
 
 class Skill:
     def __init__(self, name: str, description: str, energy_cost: int = 0, cooldown: int = 0):
@@ -33,6 +52,10 @@ class BasicAttack(Skill):
         
     def use(self, user, target) -> Dict:
         super().use(user, target)
+        
+        # Play attack sound
+        if attack_sound:
+            attack_sound.play()
         
         # Calculate base damage
         base_damage = 0
@@ -83,6 +106,10 @@ class PowerAttack(Skill):
     def use(self, user, target) -> Dict:
         super().use(user, target)
         
+        # Play attack sound
+        if attack_sound:
+            attack_sound.play()
+        
         # Calculate base damage (higher multiplier than basic attack)
         base_damage = 0
         if hasattr(user, 'equipment') and user.equipment.get('weapon'):
@@ -114,6 +141,10 @@ class HealingSkill(Skill):
         
     def use(self, user, target) -> Dict:
         super().use(user, target)
+        
+        # Play heal sound
+        if heal_sound:
+            heal_sound.play()
         
         # Calculate healing amount
         base_healing = 15
@@ -148,6 +179,10 @@ class QuickStrike(Skill):
         
     def use(self, user, target) -> Dict:
         super().use(user, target)
+        
+        # Play attack sound
+        if attack_sound:
+            attack_sound.play()
         
         # Calculate base damage (slightly lower than basic attack)
         base_damage = 0

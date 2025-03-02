@@ -1,9 +1,28 @@
 from typing import Dict, List, Optional
 import random
 import time
+import os
+import pygame
 from .player import Player
 from .enemy import Enemy, create_random_enemy
 from .items import Item, create_health_potion
+
+# Initialize sound effects
+attack_sound = None
+heal_sound = None
+
+# Load sound effects
+try:
+    audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
+    attack_sound_path = os.path.join(audio_dir, 'attack.wav')
+    heal_sound_path = os.path.join(audio_dir, 'heal.wav')
+    
+    if os.path.exists(attack_sound_path):
+        attack_sound = pygame.mixer.Sound(attack_sound_path)
+    if os.path.exists(heal_sound_path):
+        heal_sound = pygame.mixer.Sound(heal_sound_path)
+except Exception as e:
+    print(f"Error loading combat sounds: {e}")
 
 class CombatManager:
     def __init__(self, player: Player):
@@ -102,6 +121,14 @@ class CombatManager:
         # Use the skill
         result = skill.use(self.player, self.current_enemy)
         self.log_message(result["message"])
+        
+        # Play appropriate sound effect
+        if skill.name == "Healing":
+            if heal_sound:
+                heal_sound.play()
+        elif "attack" in skill.name.lower() or "strike" in skill.name.lower():
+            if attack_sound:
+                attack_sound.play()
         
         # Move to next skill in sequence
         self.player_sequence_index = (self.player_sequence_index + 1) % len(self.player.combat_sequence)

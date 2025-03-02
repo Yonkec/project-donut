@@ -262,14 +262,23 @@ def execute_combat_turn():
         # Different skills have different effects
         if skill == "Basic Attack":
             damage = max(1, player["attack"] - enemy["defense"] + random.randint(-3, 3))
+            # Play attack sound
+            if attack_sound:
+                attack_sound.play()
         elif skill == "Power Strike":
             # More powerful but with variability
             damage = max(1, int(player["attack"] * 1.5) - enemy["defense"] + random.randint(-2, 5))
+            # Play attack sound
+            if attack_sound:
+                attack_sound.play()
         elif skill == "Heal":
             # Healing skill
             heal_amount = 20 + random.randint(0, 10)
             player["current_hp"] = min(player["max_hp"], player["current_hp"] + heal_amount)
             combat_log.append(f"{player['name']} uses Heal for {heal_amount} HP!")
+            # Play heal sound
+            if heal_sound:
+                heal_sound.play()
             # Go to next skill in the sequence
             combat_sequence_index = (combat_sequence_index + 1) % len(combat_sequence)
             player_turn = False
@@ -277,6 +286,10 @@ def execute_combat_turn():
         elif skill == "Quick Strike":
             # Fast attack with chance for double hit
             damage = max(1, int(player["attack"] * 0.7) - enemy["defense"] + random.randint(-2, 2))
+            
+            # Play attack sound
+            if attack_sound:
+                attack_sound.play()
             
             # 30% chance for a second hit
             if random.random() < 0.3:
@@ -793,6 +806,8 @@ battle_music_path = os.path.join(audio_folder, "Battle Music 1.mp3")
 after_combat_path = os.path.join(audio_folder, "After Combat.mp3")
 ui_click_path = os.path.join(audio_folder, "ui_click.wav")
 ui_drop_path = os.path.join(audio_folder, "ui_click2.mp3")
+attack_sound_path = os.path.join(audio_folder, "attack.wav")
+heal_sound_path = os.path.join(audio_folder, "heal.wav")
 
 # Load images
 images_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
@@ -832,13 +847,19 @@ current_music = None
 # Load UI sounds
 ui_click_sound = None
 ui_drop_sound = None
+attack_sound = None
+heal_sound = None
 try:
     if os.path.exists(ui_click_path):
         ui_click_sound = pygame.mixer.Sound(ui_click_path)
     if os.path.exists(ui_drop_path):
         ui_drop_sound = pygame.mixer.Sound(ui_drop_path)
+    if os.path.exists(attack_sound_path):
+        attack_sound = pygame.mixer.Sound(attack_sound_path)
+    if os.path.exists(heal_sound_path):
+        heal_sound = pygame.mixer.Sound(heal_sound_path)
 except Exception as e:
-    print(f"Error loading UI sound: {e}")
+    print(f"Error loading sound: {e}")
 
 # Set up music functions
 def play_menu_music():
