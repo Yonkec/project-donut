@@ -1,0 +1,79 @@
+{
+  "goblin": {
+    "template": "ranged_enemy",
+    "name": "Goblin Lv.1",
+    "base_stats": {
+      "dexterity": 10,
+      "constitution": 7
+    },
+    "skills": ["basic_attack", "quick_strike"],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 1,
+      "quick_strike": 2
+    }
+  },
+  "orc": {
+    "template": "melee_enemy",
+    "name": "Orc Lv.1",
+    "base_stats": {
+      "strength": 11,
+      "constitution": 10,
+      "dexterity": 6
+    },
+    "damage": 4,
+    "skills": ["basic_attack", "power_attack"],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 2,
+      "power_attack": 2
+    }
+  },
+  "skeleton": {
+    "template": "magic_enemy",
+    "name": "Skeleton Lv.1",
+    "base_stats": {
+      "constitution": 5,
+      "intelligence": 8,
+      "wisdom": 8
+    },
+    "defense": 2,
+    "skills": ["basic_attack", "poison_dart"],
+    "behavior": "smart"
+  },
+  "troll": {
+    "template": "melee_enemy",
+    "name": "Troll Lv.3",
+    "level": 3,
+    "base_stats": {
+      "strength": 14,
+      "constitution": 14,
+      "dexterity": 5,
+      "intelligence": 4,
+      "wisdom": 4
+    },
+    "damage": 6,
+    "defense": 3,
+    "skills": ["basic_attack", "power_attack", "regenerate"],
+    "behavior": "smart"
+  },
+  "dark_elf": {
+    "template": "ranged_enemy",
+    "name": "Dark Elf Lv.4",
+    "level": 4,
+    "base_stats": {
+      "strength": 8,
+      "dexterity": 14,
+      "constitution": 7,
+      "intelligence": 12,
+      "wisdom": 10
+    },
+    "skills": ["basic_attack", "quick_strike", "poison_dart"],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 1,
+      "quick_strike": 2,
+      "poison_dart": 2
+    }
+  }
+}

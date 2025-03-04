@@ -1,0 +1,66 @@
+{
+  "basic_enemy": {
+    "level": 1,
+    "base_stats": {
+      "strength": 8,
+      "dexterity": 8,
+      "constitution": 8,
+      "intelligence": 8,
+      "wisdom": 8
+    },
+    "damage": 2,
+    "defense": 0,
+    "skills": ["basic_attack"],
+    "behavior": "random"
+  },
+  "melee_enemy": {
+    "template": "basic_enemy",
+    "base_stats": {
+      "strength": 10,
+      "dexterity": 8,
+      "constitution": 10,
+      "intelligence": 6,
+      "wisdom": 6
+    },
+    "damage": 3,
+    "defense": 1,
+    "skills": ["basic_attack", "power_attack"],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 3,
+      "power_attack": 1
+    }
+  },
+  "ranged_enemy": {
+    "template": "basic_enemy",
+    "base_stats": {
+      "strength": 6,
+      "dexterity": 10,
+      "constitution": 6,
+      "intelligence": 8,
+      "wisdom": 8
+    },
+    "damage": 2,
+    "defense": 0,
+    "skills": ["basic_attack", "quick_strike"],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 2,
+      "quick_strike": 2
+    }
+  },
+  "magic_enemy": {
+    "template": "basic_enemy",
+    "base_stats": {
+      "strength": 5,
+      "dexterity": 7,
+      "constitution": 6,
+      "intelligence": 10,
+      "wisdom": 10
+    },
+    "damage": 1,
+    "defense": 0,
+    "skills": ["basic_attack", "poison_dart"],
+    "behavior": "smart"
+  }
+}

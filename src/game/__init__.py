@@ -7,5 +7,7 @@ from .enemy import Enemy, create_random_enemy, create_goblin, create_orc, create
 from .items import Item, Equipment, Weapon, Armor, Helmet, Boots, Accessory, Potion
 from .skill_manager import Skill, SkillManager
 from .skill_database import SkillDatabase
-from .skills import get_skill_manager
+from .enemy_manager import EnemyManager
+from .enemy_database import EnemyDatabase
+from .skills import get_skill_manager, get_enemy_manager
 from .combat import CombatManager

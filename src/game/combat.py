@@ -4,23 +4,38 @@ import time
 import os
 import pygame
 from .player import Player
-from .enemy import Enemy, create_random_enemy
+from .enemy import Enemy
+from .skills import get_enemy_manager
 from .items import Item, create_health_potion
 
+# Initialize sound variables
 attack_sound = None
 heal_sound = None
+sounds_initialized = False
 
-try:
-    audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
-    attack_sound_path = os.path.join(audio_dir, 'attack.wav')
-    heal_sound_path = os.path.join(audio_dir, 'heal.wav')
+def init_combat_sounds():
+    """Initialize combat sound effects when pygame is ready"""
+    global attack_sound, heal_sound, sounds_initialized
     
-    if os.path.exists(attack_sound_path):
-        attack_sound = pygame.mixer.Sound(attack_sound_path)
-    if os.path.exists(heal_sound_path):
-        heal_sound = pygame.mixer.Sound(heal_sound_path)
-except Exception as e:
-    print(f"Error loading combat sounds: {e}")
+    if sounds_initialized:
+        return
+        
+    try:
+        if pygame.mixer.get_init() is None:
+            return
+            
+        audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
+        attack_sound_path = os.path.join(audio_dir, 'attack.wav')
+        heal_sound_path = os.path.join(audio_dir, 'heal.wav')
+        
+        if os.path.exists(attack_sound_path):
+            attack_sound = pygame.mixer.Sound(attack_sound_path)
+        if os.path.exists(heal_sound_path):
+            heal_sound = pygame.mixer.Sound(heal_sound_path)
+            
+        sounds_initialized = True
+    except Exception as e:
+        print(f"Error loading combat sounds: {e}")
 
 class CombatManager:
     def __init__(self, player: Player):
@@ -34,24 +49,36 @@ class CombatManager:
         self.player_sequence_index = 0
         self.action_delay = 0.8  # seconds between actions
         self.last_action_time = 0
+        self.enemy_manager = get_enemy_manager()
+        
+        # Initialize sounds
+        init_combat_sounds()
         
     def start_new_battle(self, enemy_level: Optional[int] = None):
         """Start a new battle with a random enemy"""
-        # Determine enemy level based on player level
         if enemy_level is None:
-            # Randomly choose level close to player's level
-            level_diff = random.randint(-1, 1)
-            enemy_level = max(1, self.player.level + level_diff)
+            enemy_level = max(1, self.player.level)
             
-        self.current_enemy = create_random_enemy(enemy_level)
-        self.turn = 0
-        self.combat_log = []
-        self.log_message(f"Battle started against {self.current_enemy.name}!")
+        self.current_enemy = self.enemy_manager.create_random_enemy(enemy_level)
+        
+        if not self.current_enemy:
+            # Fallback to create a basic enemy if no enemies are defined
+            self.current_enemy = self.enemy_manager.create_enemy(
+                "goblin", 
+                {
+                    "name": f"Goblin Lv.{enemy_level}",
+                    "level": enemy_level,
+                    "skills": ["basic_attack"]
+                },
+                enemy_level
+            )
+            
         self.combat_active = True
         self.victory = False
-        self.rewards = {}
+        self.turn = 0
         self.player_sequence_index = 0
-        self.last_action_time = time.time()
+        self.combat_log = []
+        self.log_message(f"Battle started against {self.current_enemy.name}!")
         
     def log_message(self, message: str):
         """Add a message to the combat log"""

@@ -4,22 +4,34 @@ import os
 import pygame
 from .skill_database import SkillDatabase
 
-# Initialize sound effects
+# Initialize sound variables
 attack_sound = None
 heal_sound = None
+sounds_initialized = False
 
-# Load sound effects
-try:
-    audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
-    attack_sound_path = os.path.join(audio_dir, 'attack.wav')
-    heal_sound_path = os.path.join(audio_dir, 'heal.wav')
+def init_sounds():
+    """Initialize sound effects when pygame is ready"""
+    global attack_sound, heal_sound, sounds_initialized
     
-    if os.path.exists(attack_sound_path):
-        attack_sound = pygame.mixer.Sound(attack_sound_path)
-    if os.path.exists(heal_sound_path):
-        heal_sound = pygame.mixer.Sound(heal_sound_path)
-except Exception as e:
-    print(f"Error loading skill sounds: {e}")
+    if sounds_initialized:
+        return
+        
+    try:
+        if pygame.mixer.get_init() is None:
+            return
+            
+        audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
+        attack_sound_path = os.path.join(audio_dir, 'attack.wav')
+        heal_sound_path = os.path.join(audio_dir, 'heal.wav')
+        
+        if os.path.exists(attack_sound_path):
+            attack_sound = pygame.mixer.Sound(attack_sound_path)
+        if os.path.exists(heal_sound_path):
+            heal_sound = pygame.mixer.Sound(heal_sound_path)
+            
+        sounds_initialized = True
+    except Exception as e:
+        print(f"Error loading skill sounds: {e}")
 
 class Skill:
     """
@@ -64,6 +76,9 @@ class Skill:
         # Consume energy if applicable
         if hasattr(user, 'energy'):
             user.energy -= self.energy_cost
+            
+        # Initialize sounds if needed
+        init_sounds()
             
         # Play sound if specified
         if self.sound == "attack" and attack_sound:
