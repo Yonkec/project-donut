@@ -1,0 +1,61 @@
+{
+  "damage": {
+    "name": "Damage",
+    "description": "Deals damage to the target",
+    "parameters": {
+      "base_value": "Base damage amount",
+      "weapon_scaling": "Multiplier for weapon damage",
+      "stat_scaling": "Scaling with character stats",
+      "variance_min": "Minimum random variance",
+      "variance_max": "Maximum random variance",
+      "message": "Message to display"
+    }
+  },
+  "healing": {
+    "name": "Healing",
+    "description": "Heals the target",
+    "parameters": {
+      "base_value": "Base healing amount",
+      "stat_scaling": "Scaling with character stats",
+      "variance_min": "Minimum random variance",
+      "variance_max": "Maximum random variance",
+      "message": "Message to display"
+    }
+  },
+  "buff": {
+    "name": "Buff",
+    "description": "Applies a positive status effect",
+    "parameters": {
+      "buff_type": "Type of buff (defense, attack, etc.)",
+      "value": "Magnitude of the buff",
+      "duration": "Duration in turns",
+      "message": "Message to display"
+    }
+  },
+  "status": {
+    "name": "Status Effect",
+    "description": "Applies a status effect (positive or negative)",
+    "parameters": {
+      "status_type": "Type of status effect (poison, burn, etc.)",
+      "value": "Magnitude of the effect",
+      "duration": "Duration in turns",
+      "chance": "Chance to apply (0.0 to 1.0)",
+      "message": "Message to display"
+    }
+  },
+  "multi_hit": {
+    "name": "Multi-Hit",
+    "description": "Performs multiple attacks",
+    "parameters": {
+      "base_value": "Base damage per hit",
+      "weapon_scaling": "Weapon damage scaling per hit",
+      "stat_scaling": "Stat scaling per hit",
+      "min_hits": "Minimum number of hits",
+      "max_hits": "Maximum number of hits",
+      "hit_chance": "Chance for each hit after the minimum",
+      "damage_scaling": "Scaling factor for successive hits",
+      "variance_min": "Minimum damage variance",
+      "variance_max": "Maximum damage variance"
+    }
+  }
+}

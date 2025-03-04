@@ -1,6 +1,8 @@
 from typing import Dict, List, Optional
 from .items import Item, Equipment
-from .skills import Skill
+from .skill_manager import Skill
+from .skill_manager import SkillManager
+from .skill_database import SkillDatabase
 
 class Player:
     def __init__(self, name: str):
@@ -10,7 +12,6 @@ class Player:
         self.experience_to_level = 100
         self.gold = 50
         
-        # Stats
         self.base_stats = {
             "strength": 10,
             "dexterity": 10,
@@ -19,11 +20,9 @@ class Player:
             "wisdom": 10
         }
         
-        # Health
         self.max_hp = self._calculate_max_hp()
         self.current_hp = self.max_hp
         
-        # Equipment and inventory
         self.equipment: Dict[str, Optional[Equipment]] = {
             "weapon": None,
             "armor": None,
@@ -33,30 +32,33 @@ class Player:
         }
         self.inventory: List[Item] = []
         
-        # Skills and combat
         self.skills: List[Skill] = []
         self.combat_sequence: List[Skill] = []
         
-        # Initialize with default equipment and skills
         self._initialize_defaults()
         
     def _initialize_defaults(self):
         from .items import Weapon, Armor
-        from .skills import BasicAttack, Defend
         
-        # Add starter equipment
+        self.skill_database = SkillDatabase()
+        self.skill_manager = SkillManager(self.skill_database)
+        self.skill_manager.register_default_effects()
+        self.skill_manager.load_all_skills()
+        
         starter_sword = Weapon("Wooden Sword", 2, 0, 0)
         starter_armor = Armor("Cloth Tunic", 1, 0, 0)
         
         self.equip_item(starter_sword)
         self.equip_item(starter_armor)
         
-        # Add basic skills
-        self.learn_skill(BasicAttack())
-        self.learn_skill(Defend())
+        basic_attack = self.skill_manager.get_skill("basic_attack")
+        defend = self.skill_manager.get_skill("defend")
         
-        # Set initial combat sequence
-        self.combat_sequence = [self.skills[0]] * 3  # Just use basic attack for now
+        if basic_attack and defend:
+            self.learn_skill(basic_attack)
+            self.learn_skill(defend)
+            
+            self.combat_sequence = [basic_attack] * 3
         
     def _calculate_max_hp(self) -> int:
         base_hp = 50
@@ -68,7 +70,6 @@ class Player:
         """Return combined stats from base stats and equipment"""
         stats = self.base_stats.copy()
         
-        # Add bonuses from equipment
         for slot, item in self.equipment.items():
             if item:
                 for stat, value in item.stat_bonuses.items():
@@ -80,19 +81,15 @@ class Player:
     def equip_item(self, item: Equipment) -> bool:
         """Equip an item in the appropriate slot"""
         if item.slot in self.equipment:
-            # Unequip existing item if any
             old_item = self.equipment[item.slot]
             if old_item:
                 self.inventory.append(old_item)
                 
-            # Equip new item
             self.equipment[item.slot] = item
             
-            # Update health if constitution changed
             old_max_hp = self.max_hp
             self.max_hp = self._calculate_max_hp()
             
-            # Adjust current HP proportionally if max HP changed
             if old_max_hp != self.max_hp:
                 self.current_hp = int(self.current_hp * (self.max_hp / old_max_hp))
                 
@@ -106,11 +103,9 @@ class Player:
             self.inventory.append(item)
             self.equipment[slot] = None
             
-            # Update health if constitution changed
             old_max_hp = self.max_hp
             self.max_hp = self._calculate_max_hp()
             
-            # Adjust current HP proportionally if max HP changed
             if old_max_hp != self.max_hp:
                 self.current_hp = int(self.current_hp * (self.max_hp / old_max_hp))
                 
@@ -120,20 +115,38 @@ class Player:
     def learn_skill(self, skill: Skill) -> bool:
         """Learn a new skill if player doesn't already know it"""
         for existing_skill in self.skills:
-            if existing_skill.name == skill.name:
-                return False  # Already knows this skill
+            if existing_skill.id == skill.id:
+                return False
                 
         self.skills.append(skill)
         return True
+        
+    def learn_skill_by_id(self, skill_id: str) -> bool:
+        """Learn a new skill by its ID"""
+        for existing_skill in self.skills:
+            if existing_skill.id == skill_id:
+                return False
+                
+        skill = self.skill_manager.get_skill(skill_id)
+        if skill:
+            self.skills.append(skill)
+            return True
+        return False
         
     def add_to_combat_sequence(self, skill: Skill, position: int) -> bool:
         """Add a skill to the combat sequence at the specified position"""
         if skill in self.skills and 0 <= position < 5:  # Limit to 5 skills in sequence
             if len(self.combat_sequence) <= position:
-                # Extend the sequence if needed
                 self.combat_sequence.extend([None] * (position - len(self.combat_sequence) + 1))
             self.combat_sequence[position] = skill
             return True
+        return False
+        
+    def add_to_combat_sequence_by_id(self, skill_id: str, position: int) -> bool:
+        """Add a skill to the combat sequence by its ID"""
+        for skill in self.skills:
+            if skill.id == skill_id:
+                return self.add_to_combat_sequence(skill, position)
         return False
         
     def gain_experience(self, amount: int) -> bool:
@@ -151,24 +164,23 @@ class Player:
         self.experience -= self.experience_to_level
         self.experience_to_level = int(self.experience_to_level * 1.5)
         
-        # Increase base stats
         for stat in self.base_stats:
             self.base_stats[stat] += 2
             
-        # Update health
         old_max_hp = self.max_hp
         self.max_hp = self._calculate_max_hp()
-        self.current_hp = self.max_hp  # Full heal on level up
+        self.current_hp = self.max_hp
         
     def take_damage(self, amount: int) -> int:
         """Take damage and return the actual amount taken"""
-        # Apply damage reduction from armor
         damage_reduction = 0
         for slot, item in self.equipment.items():
             if item and hasattr(item, 'defense'):
                 damage_reduction += item.defense
                 
-        # Minimum 1 damage
+        if hasattr(self, 'buffs') and 'defense' in self.buffs:
+            damage_reduction += self.buffs['defense']['value']
+                
         actual_damage = max(1, amount - damage_reduction)
         self.current_hp = max(0, self.current_hp - actual_damage)
         return actual_damage
@@ -183,5 +195,41 @@ class Player:
         return self.current_hp - old_hp
         
     def is_alive(self) -> bool:
-        """Check if the player is alive"""
         return self.current_hp > 0
+        
+    def update_status_effects(self) -> List[str]:
+        """Update all status effects and buffs, return messages"""
+        messages = []
+        
+        if hasattr(self, 'buffs'):
+            buffs_to_remove = []
+            for buff_type, buff_data in self.buffs.items():
+                buff_data['duration'] -= 1
+                if buff_data['duration'] <= 0:
+                    buffs_to_remove.append(buff_type)
+                    messages.append(f"{self.name}'s {buff_type} buff has expired.")
+            
+            for buff_type in buffs_to_remove:
+                del self.buffs[buff_type]
+        
+        if hasattr(self, 'status_effects'):
+            statuses_to_remove = []
+            for status_type, status_data in self.status_effects.items():
+                if status_type == 'poison':
+                    damage = status_data['value']
+                    self.current_hp = max(0, self.current_hp - damage)
+                    messages.append(f"{self.name} takes {damage} poison damage.")
+                elif status_type == 'regeneration':
+                    healing = status_data['value']
+                    self.current_hp = min(self.max_hp, self.current_hp + healing)
+                    messages.append(f"{self.name} regenerates {healing} health.")
+                
+                status_data['duration'] -= 1
+                if status_data['duration'] <= 0:
+                    statuses_to_remove.append(status_type)
+                    messages.append(f"{self.name} is no longer affected by {status_type}.")
+            
+            for status_type in statuses_to_remove:
+                del self.status_effects[status_type]
+                
+        return messages

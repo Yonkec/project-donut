@@ -1,0 +1,145 @@
+{
+  "basic_attack": {
+    "template": "basic_attack"
+  },
+  "defend": {
+    "template": "defend"
+  },
+  "power_attack": {
+    "template": "power_attack"
+  },
+  "healing": {
+    "template": "healing"
+  },
+  "quick_strike": {
+    "template": "quick_strike"
+  },
+  "fireball": {
+    "template": "spell_attack",
+    "name": "Fireball",
+    "description": "Launches a ball of fire at the target",
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 15,
+          "stat_scaling": {"intelligence": 0.2},
+          "message": "{user} launches a fireball at {target} for {damage} damage!"
+        }
+      }
+    ],
+    "conditions": [
+      {"type": "min_stat", "stat": "intelligence", "value": 12}
+    ]
+  },
+  "ice_spike": {
+    "template": "spell_attack",
+    "name": "Ice Spike",
+    "description": "Hurls a spike of ice at the target",
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 12,
+          "stat_scaling": {"intelligence": 0.15},
+          "message": "{user} hurls an ice spike at {target} for {damage} damage!"
+        }
+      },
+      {
+        "type": "status",
+        "params": {
+          "status_type": "slow",
+          "value": 1,
+          "duration": 2,
+          "chance": 0.3,
+          "message": "{target} is slowed by the ice!"
+        }
+      }
+    ],
+    "conditions": [
+      {"type": "min_stat", "stat": "intelligence", "value": 10}
+    ]
+  },
+  "vampiric_strike": {
+    "name": "Vampiric Strike",
+    "description": "Damages enemy and heals self",
+    "cooldown": 3,
+    "energy_cost": 4,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "weapon_scaling": 1.0,
+          "stat_scaling": {"strength": 0.15},
+          "variance_min": 0.8,
+          "variance_max": 1.2,
+          "message": "{user} performs a vampiric strike on {target} for {damage} damage!"
+        }
+      },
+      {
+        "type": "healing",
+        "params": {
+          "base_value": 0,
+          "stat_scaling": {"wisdom": 0.1},
+          "message": "{user} absorbs {healing} health!"
+        }
+      }
+    ]
+  },
+  "whirlwind": {
+    "name": "Whirlwind",
+    "description": "Spin and hit all enemies (placeholder for future multi-target support)",
+    "cooldown": 4,
+    "energy_cost": 5,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "weapon_scaling": 1.5,
+          "stat_scaling": {"strength": 0.1, "dexterity": 0.1},
+          "variance_min": 0.9,
+          "variance_max": 1.1,
+          "message": "{user} spins in a whirlwind, striking {target} for {damage} damage!"
+        }
+      }
+    ],
+    "conditions": [
+      {"type": "min_stat", "stat": "strength", "value": 12},
+      {"type": "min_stat", "stat": "dexterity", "value": 12}
+    ]
+  },
+  "poison_dart": {
+    "name": "Poison Dart",
+    "description": "Fires a poisoned dart that deals damage over time",
+    "cooldown": 3,
+    "energy_cost": 3,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 5,
+          "stat_scaling": {"dexterity": 0.1},
+          "message": "{user} fires a poison dart at {target} for {damage} damage!"
+        }
+      },
+      {
+        "type": "status",
+        "params": {
+          "status_type": "poison",
+          "value": 3,
+          "duration": 3,
+          "chance": 0.8,
+          "message": "{target} is poisoned!"
+        }
+      }
+    ],
+    "conditions": [
+      {"type": "min_stat", "stat": "dexterity", "value": 12}
+    ]
+  }
+}

@@ -7,11 +7,9 @@ from .player import Player
 from .enemy import Enemy, create_random_enemy
 from .items import Item, create_health_potion
 
-# Initialize sound effects
 attack_sound = None
 heal_sound = None
 
-# Load sound effects
 try:
     audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
     attack_sound_path = os.path.join(audio_dir, 'attack.wav')

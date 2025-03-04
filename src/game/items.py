@@ -54,10 +54,8 @@ class Potion(Item):
             if hasattr(target, 'heal'):
                 target.heal(self.effect_value)
                 return True
-        # Add more effect types as needed
         return False
 
-# Sample item creation functions
 def create_starter_weapon() -> Weapon:
     return Weapon("Wooden Sword", 3, 10)
 
