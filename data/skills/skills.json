@@ -1,23 +1,115 @@
 {
   "basic_attack": {
-    "template": "basic_attack"
+    "name": "Basic Attack",
+    "description": "A simple weapon attack",
+    "cooldown": 0,
+    "energy_cost": 0,
+    "action_cost": 5.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "weapon_scaling": 1.0,
+          "stat_scaling": {"strength": 0.1},
+          "variance_min": 0.8,
+          "variance_max": 1.2,
+          "message": "{user} attacks {target} for {damage} damage!"
+        }
+      }
+    ]
   },
   "defend": {
-    "template": "defend"
+    "name": "Defend",
+    "description": "Take a defensive stance to reduce incoming damage",
+    "cooldown": 1,
+    "energy_cost": 0,
+    "action_cost": 3.0,
+    "effects": [
+      {
+        "type": "buff",
+        "params": {
+          "buff_type": "defense",
+          "value": 3,
+          "duration": 1,
+          "message": "{user} takes a defensive stance!"
+        }
+      }
+    ]
   },
   "power_attack": {
-    "template": "power_attack"
+    "name": "Power Attack",
+    "description": "A powerful attack with higher damage",
+    "cooldown": 2,
+    "energy_cost": 2,
+    "action_cost": 7.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "weapon_scaling": 2.0,
+          "stat_scaling": {"strength": 0.2},
+          "variance_min": 0.9,
+          "variance_max": 1.3,
+          "message": "{user} unleashes a powerful attack on {target} for {damage} damage!"
+        }
+      }
+    ]
   },
   "healing": {
-    "template": "healing"
+    "name": "Healing",
+    "description": "Restore some health",
+    "cooldown": 3,
+    "energy_cost": 3,
+    "action_cost": 6.0,
+    "sound": "heal",
+    "effects": [
+      {
+        "type": "healing",
+        "params": {
+          "base_value": 15,
+          "stat_scaling": {"wisdom": 0.1},
+          "variance_min": 0.9,
+          "variance_max": 1.1,
+          "message": "{user} heals for {healing} health!"
+        }
+      }
+    ]
   },
   "quick_strike": {
-    "template": "quick_strike"
+    "name": "Quick Strike",
+    "description": "A swift attack that has a chance to strike multiple times",
+    "cooldown": 1,
+    "energy_cost": 1,
+    "action_cost": 2.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "multi_hit",
+        "params": {
+          "base_value": 0,
+          "weapon_scaling": 0.8,
+          "stat_scaling": {"dexterity": 0.1},
+          "min_hits": 1,
+          "max_hits": 3,
+          "hit_chance": 0.5,
+          "damage_scaling": 0.8,
+          "variance_min": 0.8,
+          "variance_max": 1.2
+        }
+      }
+    ],
+    "conditions": [
+      {"type": "min_stat", "stat": "dexterity", "value": 10}
+    ]
   },
   "fireball": {
-    "template": "spell_attack",
     "name": "Fireball",
     "description": "Launches a ball of fire at the target",
+    "cooldown": 2,
+    "energy_cost": 2,
+    "action_cost": 4.0,
     "sound": "attack",
     "effects": [
       {
@@ -25,6 +117,8 @@
         "params": {
           "base_value": 15,
           "stat_scaling": {"intelligence": 0.2},
+          "variance_min": 0.9,
+          "variance_max": 1.3,
           "message": "{user} launches a fireball at {target} for {damage} damage!"
         }
       }
@@ -34,9 +128,11 @@
     ]
   },
   "ice_spike": {
-    "template": "spell_attack",
     "name": "Ice Spike",
     "description": "Hurls a spike of ice at the target",
+    "cooldown": 2,
+    "energy_cost": 2,
+    "action_cost": 4.0,
     "sound": "attack",
     "effects": [
       {
@@ -44,14 +140,16 @@
         "params": {
           "base_value": 12,
           "stat_scaling": {"intelligence": 0.15},
+          "variance_min": 0.9,
+          "variance_max": 1.3,
           "message": "{user} hurls an ice spike at {target} for {damage} damage!"
         }
       },
       {
         "type": "status",
         "params": {
-          "status_type": "slow",
-          "value": 1,
+          "status_type": "slowed",
+          "value": 0.5,
           "duration": 2,
           "chance": 0.3,
           "message": "{target} is slowed by the ice!"
@@ -67,6 +165,7 @@
     "description": "Damages enemy and heals self",
     "cooldown": 3,
     "energy_cost": 4,
+    "action_cost": 5.0,
     "sound": "attack",
     "effects": [
       {
@@ -94,6 +193,7 @@
     "description": "Spin and hit all enemies (placeholder for future multi-target support)",
     "cooldown": 4,
     "energy_cost": 5,
+    "action_cost": 8.0,
     "sound": "attack",
     "effects": [
       {
@@ -117,6 +217,7 @@
     "description": "Fires a poisoned dart that deals damage over time",
     "cooldown": 3,
     "energy_cost": 3,
+    "action_cost": 4.0,
     "sound": "attack",
     "effects": [
       {

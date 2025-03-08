@@ -3,12 +3,13 @@ import random
 from .enemy_database import EnemyDatabase
 from .skill_manager import SkillManager
 from .skill_database import SkillDatabase
+from .action_manager import ActionManager
 
 class Enemy:
     """
     Represents an enemy created from data.
     """
-    def __init__(self, enemy_id: str, data: Dict[str, Any], skill_manager: SkillManager):
+    def __init__(self, enemy_id: str, data: Dict[str, Any], skill_manager: SkillManager, action_manager: Optional[ActionManager] = None):
         self.id = enemy_id
         self.name = data["name"]
         self.level = data.get("level", 1)
@@ -42,6 +43,12 @@ class Enemy:
         # Combat state
         self.buffs = {}
         self.status_effects = {}
+        
+        # Action management
+        self.action_manager = action_manager
+        if self.action_manager:
+            action_speed = data.get("action_speed", 1.0)
+            self.action_manager.register_entity(self.id, action_speed)
         
         # AI behavior
         self.behavior = data.get("behavior", "random")
@@ -102,6 +109,15 @@ class Enemy:
                 healing = status_data['value']
                 self.current_hp = min(self.max_hp, self.current_hp + healing)
                 messages.append(f"{self.name} regenerates {healing} health.")
+            elif status_type == 'stunned':
+                messages.append(f"{self.name} is stunned and cannot act.")
+                if self.action_manager:
+                    self.action_manager.add_action_modifier(self.id, "stunned", -1.0, 1)
+            elif status_type == 'slowed':
+                slow_value = status_data.get('value', 0.5)
+                messages.append(f"{self.name} is slowed and gains action more slowly.")
+                if self.action_manager:
+                    self.action_manager.add_action_modifier(self.id, "slowed", -slow_value, 1)
             
             status_data['duration'] -= 1
             if status_data['duration'] <= 0:
@@ -110,12 +126,21 @@ class Enemy:
         
         for status_type in statuses_to_remove:
             del self.status_effects[status_type]
+        
+        if self.action_manager:
+            expired_modifiers = self.action_manager.update_action_modifiers(self.id)
+            for modifier in expired_modifiers:
+                messages.append(f"{self.name}'s {modifier} effect has expired.")
             
         return messages
         
     def choose_action(self, player) -> Any:
         """Choose a skill to use in combat based on behavior pattern"""
-        available_skills = [skill for skill in self.skills if skill.can_use(self)]
+        if self.action_manager and hasattr(self, 'id'):
+            current_action = self.action_manager.get_current_action(self.id)
+            available_skills = [skill for skill in self.skills if skill.can_use(self) and current_action >= skill.action_cost]
+        else:
+            available_skills = [skill for skill in self.skills if skill.can_use(self)]
         
         if not available_skills:
             return self.skills[0] if self.skills else None
@@ -149,9 +174,10 @@ class EnemyManager:
     """
     Manages enemy creation and loading from database.
     """
-    def __init__(self, database: Optional[EnemyDatabase] = None, skill_manager: Optional[SkillManager] = None):
+    def __init__(self, database: Optional[EnemyDatabase] = None, skill_manager: Optional[SkillManager] = None, action_manager: Optional[ActionManager] = None):
         self.database = database or EnemyDatabase()
         self.skill_manager = skill_manager or SkillManager(SkillDatabase())
+        self.action_manager = action_manager
         self.enemies = {}
         
         # Ensure skill manager has loaded skills
@@ -187,7 +213,7 @@ class EnemyManager:
                     enemy_data["name"] = f"{name_parts[0]}Lv.{level}"
         
         # Create the enemy object
-        enemy = Enemy(enemy_id, enemy_data, self.skill_manager)
+        enemy = Enemy(enemy_id, enemy_data, self.skill_manager, self.action_manager)
         return enemy
     
     def get_enemy(self, enemy_id: str, level: Optional[int] = None) -> Optional[Enemy]:

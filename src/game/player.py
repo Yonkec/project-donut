@@ -1,12 +1,14 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from .items import Item, Equipment
 from .skill_manager import Skill
 from .skill_manager import SkillManager
 from .skill_database import SkillDatabase
+from .action_manager import ActionManager
 
 class Player:
-    def __init__(self, name: str):
+    def __init__(self, name: str, action_manager: Optional[ActionManager] = None):
         self.name = name
+        self.id = f"player_{name}"
         self.level = 1
         self.experience = 0
         self.experience_to_level = 100
@@ -34,7 +36,13 @@ class Player:
         
         self.skills: List[Skill] = []
         self.combat_sequence: List[Skill] = []
+        self.buffs = {}
+        self.status_effects = {}
         
+        self.action_manager = action_manager
+        if self.action_manager:
+            self.action_manager.register_entity(self.id, 1.0)
+            
         self._initialize_defaults()
         
     def _initialize_defaults(self):
@@ -201,35 +209,47 @@ class Player:
         """Update all status effects and buffs, return messages"""
         messages = []
         
-        if hasattr(self, 'buffs'):
-            buffs_to_remove = []
-            for buff_type, buff_data in self.buffs.items():
-                buff_data['duration'] -= 1
-                if buff_data['duration'] <= 0:
-                    buffs_to_remove.append(buff_type)
-                    messages.append(f"{self.name}'s {buff_type} buff has expired.")
-            
-            for buff_type in buffs_to_remove:
-                del self.buffs[buff_type]
+        buffs_to_remove = []
+        for buff_type, buff_data in self.buffs.items():
+            buff_data['duration'] -= 1
+            if buff_data['duration'] <= 0:
+                buffs_to_remove.append(buff_type)
+                messages.append(f"{self.name}'s {buff_type} buff has expired.")
         
-        if hasattr(self, 'status_effects'):
-            statuses_to_remove = []
-            for status_type, status_data in self.status_effects.items():
-                if status_type == 'poison':
-                    damage = status_data['value']
-                    self.current_hp = max(0, self.current_hp - damage)
-                    messages.append(f"{self.name} takes {damage} poison damage.")
-                elif status_type == 'regeneration':
-                    healing = status_data['value']
-                    self.current_hp = min(self.max_hp, self.current_hp + healing)
-                    messages.append(f"{self.name} regenerates {healing} health.")
-                
-                status_data['duration'] -= 1
-                if status_data['duration'] <= 0:
-                    statuses_to_remove.append(status_type)
-                    messages.append(f"{self.name} is no longer affected by {status_type}.")
+        for buff_type in buffs_to_remove:
+            del self.buffs[buff_type]
+        
+        statuses_to_remove = []
+        for status_type, status_data in self.status_effects.items():
+            if status_type == 'poison':
+                damage = status_data['value']
+                self.current_hp = max(0, self.current_hp - damage)
+                messages.append(f"{self.name} takes {damage} poison damage.")
+            elif status_type == 'regeneration':
+                healing = status_data['value']
+                self.current_hp = min(self.max_hp, self.current_hp + healing)
+                messages.append(f"{self.name} regenerates {healing} health.")
+            elif status_type == 'stunned':
+                messages.append(f"{self.name} is stunned and cannot act.")
+                if self.action_manager:
+                    self.action_manager.add_action_modifier(self.id, "stunned", -1.0, 1)
+            elif status_type == 'slowed':
+                slow_value = status_data.get('value', 0.5)
+                messages.append(f"{self.name} is slowed and gains action more slowly.")
+                if self.action_manager:
+                    self.action_manager.add_action_modifier(self.id, "slowed", -slow_value, 1)
             
-            for status_type in statuses_to_remove:
-                del self.status_effects[status_type]
+            status_data['duration'] -= 1
+            if status_data['duration'] <= 0:
+                statuses_to_remove.append(status_type)
+                messages.append(f"{self.name} is no longer affected by {status_type}.")
+        
+        for status_type in statuses_to_remove:
+            del self.status_effects[status_type]
+        
+        if self.action_manager:
+            expired_modifiers = self.action_manager.update_action_modifiers(self.id)
+            for modifier in expired_modifiers:
+                messages.append(f"{self.name}'s {modifier} effect has expired.")
                 
         return messages

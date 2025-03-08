@@ -42,6 +42,7 @@ class Skill:
         self.name = data["name"]
         self.description = data["description"]
         self.energy_cost = data.get("energy_cost", 0)
+        self.action_cost = data.get("action_cost", 5.0)
         self.cooldown = data.get("cooldown", 0)
         self.current_cooldown = 0
         self.effects = data.get("effects", [])
@@ -58,6 +59,12 @@ class Skill:
         if hasattr(user, 'energy') and user.energy < self.energy_cost:
             return False
             
+        # Check action cost if user has an action manager
+        if hasattr(user, 'action_manager') and hasattr(user, 'id'):
+            current_action = user.action_manager.get_current_action(user.id)
+            if current_action < self.action_cost:
+                return False
+                
         # Check conditions (e.g., minimum stats, required equipment)
         for condition in self.conditions:
             condition_type = condition["type"]
@@ -76,6 +83,10 @@ class Skill:
         # Consume energy if applicable
         if hasattr(user, 'energy'):
             user.energy -= self.energy_cost
+            
+        # Consume action if applicable
+        if hasattr(user, 'action_manager') and hasattr(user, 'id'):
+            user.action_manager.consume_action(user.id, self.action_cost)
             
         # Initialize sounds if needed
         init_sounds()
@@ -122,23 +133,7 @@ class SkillManager:
         self.effect_functions[effect_type] = effect_function
         
     def create_skill(self, skill_id: str, skill_data: Dict[str, Any]) -> Skill:
-        """Create a skill from data, possibly using a template"""
-        if "template" in skill_data and skill_data["template"] in self.database.templates:
-            # Start with template and override with specific data
-            template = self.database.get_template(skill_data["template"]).copy()
-            for key, value in skill_data.items():
-                if key != "template":
-                    if key == "effects" and "effects" in template:
-                        # For effects, we might want to replace or extend
-                        if skill_data.get("extend_effects", False):
-                            template[key].extend(value)
-                        else:
-                            template[key] = value
-                    else:
-                        template[key] = value
-            skill_data = template
-            
-        # Create the skill object
+        """Create a skill from data"""
         skill = Skill(skill_id, skill_data, self.effect_functions)
         self.skills[skill_id] = skill
         return skill
