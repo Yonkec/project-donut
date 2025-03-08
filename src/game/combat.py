@@ -3,10 +3,15 @@ import random
 import time
 import os
 import pygame
+import logging
 from .player import Player
 from .enemy import Enemy
 from .skills import get_enemy_manager
 from .items import Item, create_health_potion
+from .action_manager import ActionManager
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Initialize sound variables
 attack_sound = None
@@ -49,7 +54,8 @@ class CombatManager:
         self.player_sequence_index = 0
         self.action_delay = 0.8  # seconds between actions
         self.last_action_time = 0
-        self.enemy_manager = get_enemy_manager()
+        self.action_manager = player.action_manager if hasattr(player, 'action_manager') else None
+        self.enemy_manager = get_enemy_manager(self.action_manager)
         
         # Initialize sounds
         init_combat_sounds()
@@ -72,6 +78,17 @@ class CombatManager:
                 },
                 enemy_level
             )
+            
+        # Make sure the enemy uses the same action manager as the player
+        if self.action_manager and hasattr(self.current_enemy, 'id'):
+            logging.debug(f"Combat: Setting enemy {self.current_enemy.id} to use the combat manager's action manager")
+            self.current_enemy.action_manager = self.action_manager
+            
+            # Force register the enemy with the action manager
+            logging.debug(f"Combat: Registering enemy {self.current_enemy.id} with action manager")
+            self.action_manager.unregister_entity(self.current_enemy.id)  # Remove any existing registration
+            self.action_manager.register_entity(self.current_enemy.id, 1.0)
+            logging.debug(f"Combat: Action manager entities: {list(self.action_manager.action_consumers.keys())}")
             
         self.combat_active = True
         self.victory = False
@@ -106,6 +123,9 @@ class CombatManager:
             self.log_message(f"{self.current_enemy.name} has been defeated!")
             self.end_combat(True)
             return True
+            
+        # Update action points for both combatants
+        self._update_action_points()
             
         # Execute the next action
         if self.turn % 2 == 0:
@@ -170,6 +190,29 @@ class CombatManager:
         result = skill.use(self.current_enemy, self.player)
         self.log_message(result["message"])
         
+    def _update_action_points(self):
+        logging.debug(f"Updating action points. Action manager exists: {self.action_manager is not None}")
+        if self.action_manager:
+            if hasattr(self.player, 'id'):
+                logging.debug(f"Generating action for player {self.player.id}")
+                self.action_manager.generate_action(self.player.id, 1.0)
+                player_action = self.action_manager.get_current_action(self.player.id)
+                logging.debug(f"Player action points: {player_action}")
+            else:
+                logging.debug("Player has no id attribute")
+            
+            if self.current_enemy and hasattr(self.current_enemy, 'id'):
+                logging.debug(f"Generating action for enemy {self.current_enemy.id}")
+                self.action_manager.generate_action(self.current_enemy.id, 1.0)
+                enemy_action = self.action_manager.get_current_action(self.current_enemy.id)
+                logging.debug(f"Enemy action points: {enemy_action}")
+            elif self.current_enemy:
+                logging.debug("Enemy has no id attribute")
+            else:
+                logging.debug("No current enemy")
+        else:
+            logging.debug("No action manager in combat manager")
+    
     def _update_cooldowns(self):
         """Update cooldowns for all skills"""
         # Update player skill cooldowns

@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 from .ui import UIManager
 from ..game.player import Player
 from ..game.combat import CombatManager
+from ..game.action_manager import ActionManager
 
 class GameState(Enum):
     MAIN_MENU = auto()
@@ -23,6 +24,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.state = GameState.MAIN_MENU
+        self.action_manager = ActionManager()
         self.player = None
         self.combat_manager = None
         self.assets = {}
@@ -37,7 +39,7 @@ class Game:
         self.assets['font'] = pygame.font.SysFont(None, 32)
         
     def create_new_player(self):
-        self.player = Player("Hero")
+        self.player = Player("Hero", self.action_manager)
         self.combat_manager = CombatManager(self.player)
         
     def process_events(self):

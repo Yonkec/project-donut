@@ -214,6 +214,10 @@ def start_combat():
     victory = False
     combat_sequence_index = 0  # Start from the first skill in sequence
     
+    # Initialize action points
+    player["action_points"] = 0.0
+    enemy["action_points"] = 0.0
+    
     # Switch from town music to battle music
     play_battle_music()
     
@@ -248,6 +252,25 @@ def execute_combat_turn():
     if combat_finished:
         return
     
+    # Increase action points each turn
+    max_ap = 20.0
+    ap_gain_rate = 1.0 + (player.get('agility', 0) * 0.1)  # Base gain + bonus from agility
+    
+    # Increase player's action points
+    player['action_points'] = min(max_ap, player.get('action_points', 0) + ap_gain_rate)
+    
+    # Increase enemy's action points
+    enemy_ap_gain = 1.0 + (enemy.get('level', 1) * 0.1)  # Enemies gain AP based on level
+    enemy['action_points'] = min(max_ap, enemy.get('action_points', 0) + enemy_ap_gain)
+    
+    # Define AP costs for different skills
+    skill_costs = {
+        "Basic Attack": 5.0,
+        "Power Strike": 8.0,
+        "Heal": 10.0,
+        "Quick Strike": 6.0
+    }
+    
     if player_turn:
         # Player attacks using the skill from the combat sequence
         if not combat_sequence:
@@ -258,6 +281,16 @@ def execute_combat_turn():
         # Get the next skill in the sequence
         skill = combat_sequence[combat_sequence_index]
         damage = 0
+        
+        # Check if player has enough AP for the skill
+        ap_cost = skill_costs.get(skill, 5.0)  # Default cost if skill not found
+        
+        if player['action_points'] < ap_cost:
+            player_turn = not player_turn
+            return
+        
+        # Consume AP for the skill
+        player['action_points'] -= ap_cost
         
         # Different skills have different effects
         if skill == "Basic Attack":
@@ -323,6 +356,16 @@ def execute_combat_turn():
         # Go to next skill in the sequence
         combat_sequence_index = (combat_sequence_index + 1) % len(combat_sequence)
     else:
+        # Enemy attacks if they have enough AP
+        enemy_ap_cost = 5.0  # Base cost for enemy attack
+        
+        if enemy['action_points'] < enemy_ap_cost:
+            player_turn = not player_turn
+            return
+            
+        # Consume enemy AP
+        enemy['action_points'] -= enemy_ap_cost
+        
         # Enemy attacks
         damage = max(1, enemy["attack"] - player["defense"] + random.randint(-2, 2))
         player["current_hp"] = max(0, player["current_hp"] - damage)
@@ -494,9 +537,19 @@ def draw_combat_screen():
     draw_text(player["name"], 36, WHITE, 50, 80)
     draw_health_bar(50, 120, 200, 30, player["current_hp"], player["max_hp"], GREEN)
     
+    # Player AP text
+    max_ap = 20.0
+    player_ap = player.get('action_points', 0.0)
+    draw_text(f"AP: {player_ap:.1f}/{max_ap}", 24, (100, 200, 255), 150, 160)
+    
     # Enemy info
     draw_text(enemy["name"], 36, RED, SCREEN_WIDTH - 200, 80)
     draw_health_bar(SCREEN_WIDTH - 250, 120, 200, 30, enemy["current_hp"], enemy["max_hp"], RED)
+    
+    # Enemy AP text
+    max_ap = 20.0
+    enemy_ap = enemy.get('action_points', 0.0)
+    draw_text(f"AP: {enemy_ap:.1f}/{max_ap}", 24, (255, 150, 100), SCREEN_WIDTH - 150, 160)
     
     # Display enemy image
     enemy_type = None
@@ -520,18 +573,18 @@ def draw_combat_screen():
         
         # Calculate position to center in the top-right area
         img_x = SCREEN_WIDTH - 125 - (new_width // 2)
-        img_y = 180
+        img_y = 240
         
         # Draw image with a border
         pygame.draw.rect(screen, (80, 80, 100), (img_x - 5, img_y - 5, new_width + 10, new_height + 10))
         screen.blit(scaled_img, (img_x, img_y))
     
     # Combat sequence preview
-    draw_text("Combat Sequence:", 24, (180, 180, 255), 50, 160)
+    draw_text("Combat Sequence:", 24, (180, 180, 255), 50, 240)
     seq_width = 80
     seq_height = 30
     seq_spacing = 10
-    seq_y = 190
+    seq_y = 270
     
     # Highlight the active skill in the sequence
     for i, skill in enumerate(combat_sequence):
@@ -547,9 +600,9 @@ def draw_combat_screen():
         screen.blit(text_surf, text_rect)
     
     # Combat log
-    draw_text("Combat Log:", 30, (200, 200, 255), 50, 240)
+    draw_text("Combat Log:", 30, (200, 200, 255), 50, 320)
     for i, message in enumerate(combat_log[-6:]):
-        draw_text(message, 24, WHITE, 70, 280 + i*30)
+        draw_text(message, 24, WHITE, 70, 360 + i*30)
         
     # Back button if combat is finished
     if combat_finished:

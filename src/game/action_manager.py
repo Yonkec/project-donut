@@ -1,5 +1,6 @@
 from typing import Dict, List, Any, Optional, Callable
 import random
+import logging
 
 class ActionManager:
     def __init__(self):
@@ -7,6 +8,7 @@ class ActionManager:
         self.action_consumers = {}
         
     def register_entity(self, entity_id: str, base_action_rate: float = 1.0):
+        logging.debug(f"ActionManager: Registering entity {entity_id} with base rate {base_action_rate}")
         self.action_generators[entity_id] = {
             "base_rate": base_action_rate,
             "current_rate": base_action_rate,
@@ -17,6 +19,7 @@ class ActionManager:
             "next_skill": None,
             "skill_sequence": []
         }
+        logging.debug(f"ActionManager: Registered entities: {list(self.action_consumers.keys())}")
     
     def unregister_entity(self, entity_id: str):
         if entity_id in self.action_generators:
@@ -74,8 +77,13 @@ class ActionManager:
         return expired_modifiers
     
     def get_current_action(self, entity_id: str) -> float:
+        logging.debug(f"ActionManager: Getting action for entity {entity_id}")
+        logging.debug(f"ActionManager: Registered entities: {list(self.action_consumers.keys())}")
         if entity_id in self.action_consumers:
-            return self.action_consumers[entity_id]["current_action"]
+            action_points = self.action_consumers[entity_id]["current_action"]
+            logging.debug(f"ActionManager: Entity {entity_id} has {action_points} action points")
+            return action_points
+        logging.debug(f"ActionManager: Entity {entity_id} not found in action consumers")
         return 0.0
     
     def get_action_rate(self, entity_id: str) -> float:
@@ -89,18 +97,25 @@ class ActionManager:
         return False
     
     def generate_action(self, entity_id: str, tick_time: float = 1.0) -> float:
+        logging.debug(f"ActionManager: Generating action for entity {entity_id}")
         if entity_id not in self.action_generators or entity_id not in self.action_consumers:
+            logging.debug(f"ActionManager: Entity {entity_id} not registered properly")
             return 0.0
         
         # Don't generate action if stunned
         if self.is_stunned(entity_id):
+            logging.debug(f"ActionManager: Entity {entity_id} is stunned, no action generated")
             return 0.0
             
         rate = self.action_generators[entity_id]["current_rate"]
         action_gained = rate * tick_time
         
         # Add the action points
+        current_before = self.action_consumers[entity_id]["current_action"]
         self.action_consumers[entity_id]["current_action"] += action_gained
+        current_after = self.action_consumers[entity_id]["current_action"]
+        
+        logging.debug(f"ActionManager: Entity {entity_id} gained {action_gained} action points. Before: {current_before}, After: {current_after}")
         
         return action_gained
     

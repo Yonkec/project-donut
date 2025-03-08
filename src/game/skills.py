@@ -11,6 +11,7 @@ from .skill_manager import SkillManager, Skill
 from .skill_database import SkillDatabase
 from .enemy_manager import EnemyManager, Enemy
 from .enemy_database import EnemyDatabase
+from .action_manager import ActionManager
 
 def get_skill_manager() -> SkillManager:
     """Create and return a new SkillManager instance with default effects registered"""
@@ -20,9 +21,9 @@ def get_skill_manager() -> SkillManager:
     manager.load_all_skills()
     return manager
 
-def get_enemy_manager() -> EnemyManager:
+def get_enemy_manager(action_manager: Optional[ActionManager] = None) -> EnemyManager:
     """Create and return a new EnemyManager instance with skill manager configured"""
     skill_manager = get_skill_manager()
     enemy_database = EnemyDatabase()
-    enemy_manager = EnemyManager(enemy_database, skill_manager)
+    enemy_manager = EnemyManager(enemy_database, skill_manager, action_manager)
     return enemy_manager

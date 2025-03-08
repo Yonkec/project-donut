@@ -69,20 +69,32 @@ class Button(UIElement):
 class Label(UIElement):
     def __init__(self, x: int, y: int, text: str, color: Tuple[int, int, int] = (255, 255, 255),
                  font_size: int = 24):
-        super().__init__(x, y, 0, 0)  # Width and height will be set when rendering
-        self.text = text
+        super().__init__(x, y, 0, 0)
+        self._text = text
         self.color = color
         self.font_size = font_size
         self.font = pygame.font.SysFont(None, font_size)
-        text_surf = self.font.render(text, True, color)
+        self._update_dimensions()
+    
+    @property
+    def text(self):
+        return self._text
+    
+    @text.setter
+    def text(self, new_text):
+        self._text = new_text
+        self._update_dimensions()
+    
+    def _update_dimensions(self):
+        text_surf = self.font.render(self._text, True, self.color)
         self.rect.width = text_surf.get_width()
         self.rect.height = text_surf.get_height()
         
     def render(self, surface):
         if not self.visible:
             return
-            
-        text_surf = self.font.render(self.text, True, self.color)
+        
+        text_surf = self.font.render(self._text, True, self.color)
         surface.blit(text_surf, self.rect)
 
 class ProgressBar(UIElement):
@@ -272,18 +284,41 @@ class UIManager:
             
             player = self.game.player
             enemy = self.game.combat_manager.current_enemy
+            action_manager = self.game.combat_manager.action_manager
             
             # Player info
             self.add_element(Label(50, 80, f"{player.name}", (220, 220, 220)))
             self.add_element(Label(50, 110, f"HP: {player.current_hp}/{player.max_hp}", (220, 220, 220)))
             
+            # Player HP bar
             player_hp_bar = self.add_element(ProgressBar(50, 140, 200, 20, player.current_hp / player.max_hp, (0, 200, 0)))
+            
+            player_action = 0.0
+            if action_manager and hasattr(player, 'id'):
+                player_action = action_manager.get_current_action(player.id)
+            
+            max_ap = 20.0
+            player_ap_bar = self.add_element(ProgressBar(50, 170, 200, 20, min(player_action / max_ap, 1.0), (100, 200, 255)))
+            self.add_element(Label(50, 195, f"AP: {player_action:.1f}/{max_ap}", (100, 200, 255), 20))
+            
+
             
             # Enemy info
             self.add_element(Label(screen_width - 250, 80, f"{enemy.name}", (220, 100, 100)))
             self.add_element(Label(screen_width - 250, 110, f"HP: {enemy.current_hp}/{enemy.max_hp}", (220, 100, 100)))
             
+            # Enemy HP bar
             enemy_hp_bar = self.add_element(ProgressBar(screen_width - 250, 140, 200, 20, enemy.current_hp / enemy.max_hp, (200, 0, 0)))
+            
+            enemy_action = 0.0
+            if enemy and action_manager and hasattr(enemy, 'id'):
+                enemy_action = action_manager.get_current_action(enemy.id)
+            
+            max_ap = 20.0
+            enemy_ap_bar = self.add_element(ProgressBar(screen_width - 250, 170, 200, 20, min(enemy_action / max_ap, 1.0), (255, 150, 100)))
+            self.add_element(Label(screen_width - 250, 195, f"AP: {enemy_action:.1f}/{max_ap}", (255, 150, 100), 20))
+            
+
             
             # Combat log
             self.add_element(Label(50, 200, "Combat Log:", (180, 180, 220)))
@@ -292,6 +327,8 @@ class UIManager:
             for message in self.game.combat_manager.combat_log[-5:]:
                 self.add_element(Label(70, log_y, message, (180, 180, 220)))
                 log_y += 30
+                
+
                 
         elif state == GameState.RESULTS:
             self.add_element(Label(20, 20, "Battle Results", (255, 215, 0), 36))
