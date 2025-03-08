@@ -20,5 +20,5 @@ def create_orc(level: int = 1) -> Enemy:
 def create_skeleton(level: int = 1) -> Enemy:
     return _enemy_manager.get_enemy("skeleton", level)
 
-def create_random_enemy(level: int = 1) -> Enemy:
-    return _enemy_manager.create_random_enemy(level)
+def create_random_enemy(level: int = 1, player_level: int = 1) -> Enemy:
+    return _enemy_manager.create_random_enemy(level, player_level)

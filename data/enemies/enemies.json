@@ -2,49 +2,123 @@
   "goblin": {
     "template": "ranged_enemy",
     "name": "Goblin Lv.1",
+    "level": 1,
+    "min_player_level": 1,
     "base_stats": {
       "dexterity": 10,
       "constitution": 7
     },
-    "skills": ["basic_attack", "quick_strike"],
+    "skills": [
+      "basic_attack",
+      "quick_strike"
+    ],
     "behavior": "weighted",
     "skill_weights": {
       "basic_attack": 1,
       "quick_strike": 2
     }
   },
+  "goblin_archer": {
+    "template": "ranged_enemy",
+    "name": "Goblin Archer Lv.2",
+    "level": 2,
+    "min_player_level": 2,
+    "base_stats": {
+      "dexterity": 12,
+      "constitution": 8
+    },
+    "skills": [
+      "basic_attack",
+      "quick_strike"
+    ],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 1,
+      "quick_strike": 3
+    }
+  },
   "orc": {
     "template": "melee_enemy",
     "name": "Orc Lv.1",
+    "level": 1,
+    "min_player_level": 1,
     "base_stats": {
       "strength": 11,
       "constitution": 10,
       "dexterity": 6
     },
     "damage": 4,
-    "skills": ["basic_attack", "power_attack"],
+    "skills": [
+      "basic_attack",
+      "power_attack"
+    ],
     "behavior": "weighted",
     "skill_weights": {
       "basic_attack": 2,
       "power_attack": 2
     }
   },
+  "orc_warrior": {
+    "template": "melee_enemy",
+    "name": "Orc Warrior Lv.3",
+    "level": 3,
+    "min_player_level": 3,
+    "base_stats": {
+      "strength": 13,
+      "constitution": 12,
+      "dexterity": 7
+    },
+    "damage": 5,
+    "defense": 2,
+    "skills": [
+      "basic_attack",
+      "power_attack"
+    ],
+    "behavior": "weighted",
+    "skill_weights": {
+      "basic_attack": 1,
+      "power_attack": 3
+    }
+  },
   "skeleton": {
     "template": "magic_enemy",
     "name": "Skeleton Lv.1",
+    "level": 1,
+    "min_player_level": 1,
     "base_stats": {
       "constitution": 5,
       "intelligence": 8,
       "wisdom": 8
     },
     "defense": 2,
-    "skills": ["basic_attack", "poison_dart"],
+    "skills": [
+      "basic_attack",
+      "poison_dart"
+    ],
+    "behavior": "smart"
+  },
+  "skeleton_mage": {
+    "template": "magic_enemy",
+    "name": "Skeleton Mage Lv.4",
+    "level": 4,
+    "min_player_level": 4,
+    "base_stats": {
+      "constitution": 6,
+      "intelligence": 12,
+      "wisdom": 10
+    },
+    "defense": 1,
+    "skills": [
+      "basic_attack",
+      "poison_dart"
+    ],
     "behavior": "smart"
   },
   "troll": {
     "template": "melee_enemy",
-    "name": "Troll Lv.3",
-    "level": 3,
+    "name": "Troll Lv.5",
+    "level": 5,
+    "min_player_level": 5,
     "base_stats": {
       "strength": 14,
       "constitution": 14,
@@ -54,13 +128,39 @@
     },
     "damage": 6,
     "defense": 3,
-    "skills": ["basic_attack", "power_attack", "regenerate"],
+    "skills": [
+      "basic_attack",
+      "power_attack",
+      "regenerate"
+    ],
+    "behavior": "smart"
+  },
+  "troll_berserker": {
+    "template": "melee_enemy",
+    "name": "Troll Berserker Lv.7",
+    "level": 7,
+    "min_player_level": 7,
+    "base_stats": {
+      "strength": 16,
+      "constitution": 15,
+      "dexterity": 6,
+      "intelligence": 4,
+      "wisdom": 4
+    },
+    "damage": 8,
+    "defense": 2,
+    "skills": [
+      "basic_attack",
+      "power_attack",
+      "regenerate"
+    ],
     "behavior": "smart"
   },
   "dark_elf": {
     "template": "ranged_enemy",
-    "name": "Dark Elf Lv.4",
-    "level": 4,
+    "name": "Dark Elf Lv.6",
+    "level": 6,
+    "min_player_level": 6,
     "base_stats": {
       "strength": 8,
       "dexterity": 14,
@@ -68,12 +168,57 @@
       "intelligence": 12,
       "wisdom": 10
     },
-    "skills": ["basic_attack", "quick_strike", "poison_dart"],
+    "skills": [
+      "basic_attack",
+      "quick_strike",
+      "poison_dart"
+    ],
     "behavior": "weighted",
     "skill_weights": {
       "basic_attack": 1,
       "quick_strike": 2,
       "poison_dart": 2
     }
+  },
+  "dark_elf_assassin": {
+    "template": "ranged_enemy",
+    "name": "Dark Elf Assassin Lv.8",
+    "level": 8,
+    "min_player_level": 8,
+    "base_stats": {
+      "strength": 10,
+      "dexterity": 16,
+      "constitution": 8,
+      "intelligence": 14,
+      "wisdom": 12
+    },
+    "skills": [
+      "basic_attack",
+      "quick_strike",
+      "poison_dart"
+    ],
+    "behavior": "smart"
+  },
+  "dragon_whelp": {
+    "template": "magic_enemy",
+    "name": "Dragon Whelp Lv.10",
+    "level": 10,
+    "min_player_level": 10,
+    "base_stats": {
+      "strength": 14,
+      "dexterity": 12,
+      "constitution": 16,
+      "intelligence": 14,
+      "wisdom": 14
+    },
+    "damage": 10,
+    "defense": 5,
+    "skills": [
+      "basic_attack",
+      "power_attack",
+      "poison_dart",
+      "regenerate"
+    ],
+    "behavior": "smart"
   }
 }

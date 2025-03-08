@@ -202,11 +202,24 @@ class EnemyManager:
         for enemy_id, enemy_data in self.database.get_all_enemies().items():
             self.create_enemy(enemy_id, enemy_data)
     
-    def create_random_enemy(self, level: Optional[int] = None) -> Optional[Enemy]:
-        """Create a random enemy from available enemies"""
-        all_enemies = list(self.database.get_all_enemies().items())
+    def create_random_enemy(self, level: Optional[int] = None, player_level: int = 1) -> Optional[Enemy]:
+        """Create a random enemy from available enemies based on player level"""
+        all_enemies = self.database.get_all_enemies()
         if not all_enemies:
             return None
             
-        enemy_id, enemy_data = random.choice(all_enemies)
+        # Filter enemies by player level requirement
+        suitable_enemies = []
+        for enemy_id, enemy_data in all_enemies.items():
+            min_player_level = enemy_data.get("min_player_level", 1)
+            if player_level >= min_player_level:
+                suitable_enemies.append((enemy_id, enemy_data))
+        
+        if not suitable_enemies:
+            # Fallback to basic enemies if no suitable ones found
+            suitable_enemies = [(enemy_id, enemy_data) for enemy_id, enemy_data in all_enemies.items() 
+                              if enemy_data.get("min_player_level", 1) == 1]
+        
+        # Choose a random enemy from suitable ones
+        enemy_id, enemy_data = random.choice(suitable_enemies)
         return self.create_enemy(enemy_id, enemy_data, level)
