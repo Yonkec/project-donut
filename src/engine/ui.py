@@ -84,6 +84,9 @@ class UIManager:
             victory = self.game.combat_manager.victory if hasattr(self.game, 'combat_manager') else False
             self.state_builder.build_game_over()
             
+        elif state == GameState.END_COMBAT:
+            self.state_builder.build_end_combat_ui()
+            
         elif state == GameState.SETTINGS:
             self.state_builder.build_settings_ui()
     

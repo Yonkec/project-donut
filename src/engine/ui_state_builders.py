@@ -81,26 +81,52 @@ class StateUIBuilder:
         title_x = int(self.screen_width * 0.05)
         self.ui_manager.add_element(Label(title_x, title_y, "Character", (255, 215, 0), 36))
         
-        # Character info - positioned at 15%, 25%, and 35% from top, 10% from left
+        # Character info - positioned using percentage-based layout
         info_x = int(self.screen_width * 0.1)
         name_y = int(self.screen_height * 0.15)
-        level_y = int(self.screen_height * 0.25)
-        hp_y = int(self.screen_height * 0.35)
+        level_y = int(self.screen_height * 0.20)
+        hp_y = int(self.screen_height * 0.25)
+        gold_y = int(self.screen_height * 0.30)
+        exp_y = int(self.screen_height * 0.35)
         
         self.ui_manager.add_element(Label(info_x, name_y, f"Name: {player.name}", (220, 220, 220)))
         self.ui_manager.add_element(Label(info_x, level_y, f"Level: {player.level}", (220, 220, 220)))
         self.ui_manager.add_element(Label(info_x, hp_y, f"HP: {player.current_hp}/{player.max_hp}", (220, 220, 220)))
         
+        # Gold display
+        gold_color = (255, 215, 0)  # Gold color
+        self.ui_manager.add_element(Label(info_x, gold_y, f"Gold: {player.gold}", gold_color))
+        
+        # Experience bar
+        exp_label_x = info_x
+        exp_bar_x = int(self.screen_width * 0.1)
+        exp_bar_y = exp_y + 25
+        exp_bar_width = int(self.screen_width * 0.4)  # 40% of screen width
+        exp_bar_height = int(self.screen_height * 0.03)  # 3% of screen height
+        
+        # Add experience label
+        self.ui_manager.add_element(Label(exp_label_x, exp_y, f"Experience: {player.experience}/{player.experience_to_level}", (173, 216, 230)))
+        
+        # Calculate experience percentage
+        exp_percentage = player.experience / player.experience_to_level if player.experience_to_level > 0 else 0
+        
+        # Add experience progress bar
+        exp_bar = ProgressBar(exp_bar_x, exp_bar_y, exp_bar_width, exp_bar_height, exp_percentage, (0, 191, 255))
+        self.ui_manager.add_element(exp_bar)
+        
         # Navigation buttons - positioned at right side
         button_width = int(self.screen_width * 0.2)  # 20% of screen width
         button_height = int(self.screen_height * 0.07)  # 7% of screen height
         button_x = int(self.screen_width * 0.95 - button_width)  # 5% from right edge
-        button_spacing = int(self.screen_height * 0.09)  # 9% of screen height
+        
+        # Position buttons evenly in the right side of the screen
+        button_start_y = int(self.screen_height * 0.15)  # Start at 15% of screen height
+        button_spacing = int(self.screen_height * 0.09)  # 9% of screen height between buttons
         
         # Equipment button
         self.ui_manager.add_element(Button(
             button_x, 
-            title_y, 
+            button_start_y, 
             button_width, 
             button_height, 
             "Equipment", 
@@ -110,17 +136,17 @@ class StateUIBuilder:
         # Skills button                        
         self.ui_manager.add_element(Button(
             button_x, 
-            title_y + button_spacing, 
+            button_start_y + button_spacing, 
             button_width, 
             button_height, 
             "Skills", 
             lambda: self.game.change_state(GameState.SKILLS)
         ))
         
-        # Settings button - add a settings button to character screen
+        # Settings button
         self.ui_manager.add_element(Button(
             button_x, 
-            title_y + button_spacing * 2, 
+            button_start_y + button_spacing * 2, 
             button_width, 
             button_height, 
             "Settings", 
@@ -130,7 +156,7 @@ class StateUIBuilder:
         # Combat button                         
         self.ui_manager.add_element(Button(
             button_x, 
-            title_y + button_spacing * 3, 
+            button_start_y + button_spacing * 3, 
             button_width, 
             button_height, 
             "Combat", 
@@ -689,4 +715,59 @@ class StateUIBuilder:
             back_button_x, back_button_y, button_width, button_height, 
             "Back",
             lambda: self.game.change_state(self.game.previous_state)
+        ))
+        
+    def build_end_combat_ui(self):
+        from .game import GameState
+        
+        # Get combat manager and check if player won or lost
+        combat_manager = self.game.combat_manager
+        victory = combat_manager.victory if combat_manager else False
+        
+        # Title - positioned at top center
+        title_y = int(self.screen_height * 0.1)
+        title_x = int(self.screen_width * 0.5)
+        
+        # Set title based on victory or defeat
+        if victory:
+            self.ui_manager.add_element(Label(title_x - 100, title_y, "Victory!", (50, 205, 50), 48))
+        else:
+            # Display YOU HAVE DIED in large red letters
+            self.ui_manager.add_element(Label(title_x - 200, title_y, "YOU HAVE DIED", (255, 0, 0), 72))
+        
+        # Display rewards if victorious
+        if victory and combat_manager and hasattr(combat_manager, 'rewards'):
+            rewards_y = int(self.screen_height * 0.3)
+            rewards_x = int(self.screen_width * 0.5)
+            
+            # Experience gained
+            if 'experience' in combat_manager.rewards:
+                exp_text = f"Experience Gained: {combat_manager.rewards['experience']}"
+                self.ui_manager.add_element(Label(rewards_x - 150, rewards_y, exp_text, (220, 220, 220), 28))
+            
+            # Gold gained
+            if 'gold' in combat_manager.rewards:
+                gold_text = f"Gold Gained: {combat_manager.rewards['gold']}"
+                self.ui_manager.add_element(Label(rewards_x - 150, rewards_y + 40, gold_text, (255, 215, 0), 28))
+            
+            # Items gained
+            if 'items' in combat_manager.rewards and combat_manager.rewards['items']:
+                items_text = "Items Found: " + ", ".join(item.name for item in combat_manager.rewards['items'])
+                self.ui_manager.add_element(Label(rewards_x - 150, rewards_y + 80, items_text, (173, 216, 230), 24))
+            
+            # Level up notification if player leveled up
+            if hasattr(self.game.player, 'level') and self.game.player.level > 1:
+                level_text = f"Level: {self.game.player.level}"
+                self.ui_manager.add_element(Label(rewards_x - 150, rewards_y + 120, level_text, (255, 165, 0), 32))
+        
+        # Continue button - positioned at bottom center
+        button_width = int(self.screen_width * 0.25)
+        button_height = int(self.screen_height * 0.07)
+        button_x = int(self.screen_width * 0.5 - button_width * 0.5)
+        button_y = int(self.screen_height * 0.8)
+        
+        self.ui_manager.add_element(Button(
+            button_x, button_y, button_width, button_height,
+            "Continue",
+            lambda: self.game.change_state(GameState.CHARACTER)
         ))

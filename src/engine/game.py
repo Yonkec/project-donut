@@ -19,6 +19,7 @@ class GameState(Enum):
     COMBAT = auto()
     RESULTS = auto()
     SETTINGS = auto()
+    END_COMBAT = auto()
 
 class Game:
     def __init__(self, width: int = 800, height: int = 600):
@@ -66,7 +67,7 @@ class Game:
                 self.ui_manager.build_ui_for_state(self.state)
                 
                 if combat_finished:
-                    self.state = GameState.RESULTS
+                    self.change_state(GameState.END_COMBAT)
         
     def render(self):
         self.screen.fill((30, 30, 40))  # Dark background
@@ -101,7 +102,7 @@ class Game:
             self.audio_manager.play_town_music()
         elif new_state == GameState.COMBAT:
             self.audio_manager.play_battle_music()
-        elif new_state == GameState.RESULTS:
+        elif new_state in [GameState.RESULTS, GameState.END_COMBAT]:
             self.audio_manager.play_after_combat_music()
             
     def save_game(self):
