@@ -97,18 +97,9 @@ class Game:
             self.audio_manager.play_after_combat_music()
             
     def save_game(self):
-        if self.player:
-            success, message = self.save_manager.save_game(self.player.to_dict(), self.combat_manager.get_combat_sequence())
-            return success, message
-        return False, "No player data to save"
+        # Temporarily disabled save functionality
+        return False, "Save functionality is currently disabled"
     
     def load_game(self):
-        success, player_data, combat_sequence = self.save_manager.load_game()
-        if success and player_data:
-            self.player = Player.from_dict(player_data, self.action_manager)
-            self.combat_manager = CombatManager(self.player)
-            if combat_sequence:
-                self.combat_manager.set_combat_sequence(combat_sequence)
-            self.change_state(GameState.CHARACTER)
-            return True
+        # Temporarily disabled load functionality
         return False
