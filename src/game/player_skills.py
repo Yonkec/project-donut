@@ -156,3 +156,53 @@ class PlayerSkills:
                 messages.append(f"{self.player.name}'s {modifier} effect has expired.")
                 
         return messages
+        
+    def to_dict(self) -> Dict[str, Any]:
+        skills_list = []
+        for skill in self.skills:
+            if hasattr(skill, 'id'):
+                skills_list.append(skill.id)
+                
+        combat_sequence_list = []
+        for skill in self.combat_sequence:
+            if skill and hasattr(skill, 'id'):
+                combat_sequence_list.append(skill.id)
+            else:
+                combat_sequence_list.append(None)
+                
+        return {
+            "skills": skills_list,
+            "combat_sequence": combat_sequence_list,
+            "buffs": self.buffs,
+            "status_effects": self.status_effects
+        }
+        
+    def from_dict(self, data: Dict[str, Any]):
+        if not isinstance(data, dict):
+            return
+            
+        self.skills.clear()
+        self.combat_sequence.clear()
+        self.buffs.clear()
+        self.status_effects.clear()
+        
+        if "skills" in data and isinstance(data["skills"], list):
+            for skill_id in data["skills"]:
+                if skill_id and isinstance(skill_id, str):
+                    skill = self.skill_manager.get_skill(skill_id)
+                    if skill:
+                        self.skills.append(skill)
+        
+        if "combat_sequence" in data and isinstance(data["combat_sequence"], list):
+            for skill_id in data["combat_sequence"]:
+                if skill_id and isinstance(skill_id, str):
+                    skill = self.skill_manager.get_skill(skill_id)
+                    self.combat_sequence.append(skill)
+                else:
+                    self.combat_sequence.append(None)
+        
+        if "buffs" in data and isinstance(data["buffs"], dict):
+            self.buffs = data["buffs"]
+            
+        if "status_effects" in data and isinstance(data["status_effects"], dict):
+            self.status_effects = data["status_effects"]

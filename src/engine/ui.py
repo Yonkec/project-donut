@@ -15,6 +15,13 @@ class UIManager:
         self.asset_manager = game.asset_manager
         self.state_builder = StateUIBuilder(self)
         
+        # Notification system
+        self.notification_text = ""
+        self.notification_color = (255, 255, 255)
+        self.notification_timer = 0
+        self.notification_duration = 2000  # 2 seconds
+        self._last_tick = pygame.time.get_ticks()
+        
     def clear(self):
         self.elements = []
         
@@ -33,6 +40,14 @@ class UIManager:
         for element in self.elements:
             element.update()
             
+        # Update notification timer
+        if self.notification_timer > 0:
+            self.notification_timer -= pygame.time.get_ticks() - self._last_tick
+            if self.notification_timer <= 0:
+                self.notification_text = ""
+                
+        self._last_tick = pygame.time.get_ticks()
+            
     def render(self):
         # Check if we're on the main menu and should display the title image first
         from .game import GameState
@@ -48,6 +63,22 @@ class UIManager:
         # Render all UI elements
         for element in self.elements:
             element.render(self.game.screen)
+            
+        # Render notification if active
+        if self.notification_text and self.notification_timer > 0:
+            font = pygame.font.SysFont(None, 24)
+            text_surface = font.render(self.notification_text, True, self.notification_color)
+            text_rect = text_surface.get_rect(center=(self.game.width // 2, self.game.height - 50))
+            
+            # Draw a semi-transparent background
+            bg_rect = text_rect.inflate(20, 10)
+            bg_surface = pygame.Surface((bg_rect.width, bg_rect.height))
+            bg_surface.set_alpha(180)
+            bg_surface.fill((0, 0, 0))
+            self.game.screen.blit(bg_surface, bg_rect)
+            
+            # Draw the text
+            self.game.screen.blit(text_surface, text_rect)
             
     def build_ui_for_state(self, state):
         self.clear()
@@ -98,6 +129,12 @@ class UIManager:
     def _load_game(self):
         if self.game.load_game():
             self.game.audio_manager.play_ui_click()
+            
+    def show_notification(self, text, color=(255, 255, 255)):
+        self.notification_text = text
+        self.notification_color = color
+        self.notification_timer = self.notification_duration
+        self._last_tick = pygame.time.get_ticks()
         
     def _exit_game(self):
         self.game.running = False

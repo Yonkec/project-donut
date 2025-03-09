@@ -128,3 +128,47 @@ class Player:
         
     def update_status_effects(self) -> List[str]:
         return self.skills_manager.update_status_effects()
+        
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "id": self.id,
+            "level": self.level,
+            "experience": self.experience,
+            "experience_to_level": self.experience_to_level,
+            "gold": self.gold,
+            "base_stats": self.base_stats,
+            "max_hp": self.max_hp,
+            "current_hp": self.current_hp,
+            "inventory": self.inventory.to_dict() if hasattr(self.inventory, 'to_dict') else {},
+            "skills": self.skills_manager.to_dict() if hasattr(self.skills_manager, 'to_dict') else {}
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], action_manager: Optional[ActionManager] = None) -> 'Player':
+        if not isinstance(data, dict):
+            raise ValueError("Player data must be a dictionary")
+            
+        player = cls(data.get("name", "Hero"), action_manager)
+        
+        player.id = data.get("id", player.id)
+        player.level = data.get("level", 1)
+        player.experience = data.get("experience", 0)
+        player.experience_to_level = data.get("experience_to_level", 100)
+        player.gold = data.get("gold", 50)
+        
+        if "base_stats" in data and isinstance(data["base_stats"], dict):
+            for stat, value in data["base_stats"].items():
+                if stat in player.base_stats:
+                    player.base_stats[stat] = value
+        
+        player.max_hp = data.get("max_hp", player._calculate_max_hp())
+        player.current_hp = data.get("current_hp", player.max_hp)
+        
+        if "inventory" in data and hasattr(player.inventory, 'from_dict'):
+            player.inventory.from_dict(data["inventory"])
+            
+        if "skills" in data and hasattr(player.skills_manager, 'from_dict'):
+            player.skills_manager.from_dict(data["skills"])
+            
+        return player

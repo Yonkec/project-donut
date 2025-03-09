@@ -162,6 +162,21 @@ class StateUIBuilder:
             "Combat", 
             lambda: self.game.change_state(GameState.COMBAT_SETUP)
         ))
+        
+        # Save button - positioned at bottom right
+        save_button_width = int(self.screen_width * 0.15)  # 15% of screen width
+        save_button_height = int(self.screen_height * 0.06)  # 6% of screen height
+        save_button_x = int(self.screen_width * 0.95 - save_button_width)  # 5% from right edge
+        save_button_y = int(self.screen_height * 0.95 - save_button_height)  # 5% from bottom edge
+        
+        self.ui_manager.add_element(Button(
+            save_button_x, 
+            save_button_y, 
+            save_button_width, 
+            save_button_height, 
+            "Save Game", 
+            lambda: self.game.save_game()
+        ))
     
     def build_equipment_ui(self, player):
         from .game import GameState
@@ -723,6 +738,10 @@ class StateUIBuilder:
         # Get combat manager and check if player won or lost
         combat_manager = self.game.combat_manager
         victory = combat_manager.victory if combat_manager else False
+        
+        # Automatically save the game when entering END_COMBAT state
+        if self.game.player:
+            self.game.save_game()
         
         # Title - positioned at top center
         title_y = int(self.screen_height * 0.1)

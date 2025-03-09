@@ -78,3 +78,109 @@ class PlayerInventory:
             if item.name == name:
                 return item
         return None
+        
+    def to_dict(self) -> Dict[str, Any]:
+        equipment_dict = {}
+        for slot, item in self.equipment.items():
+            if item:
+                equipment_dict[slot] = item.to_dict() if hasattr(item, 'to_dict') else {
+                    "name": item.name,
+                    "slot": item.slot,
+                    "attack": getattr(item, 'attack', 0),
+                    "defense": getattr(item, 'defense', 0),
+                    "stat_bonuses": getattr(item, 'stat_bonuses', {})
+                }
+            else:
+                equipment_dict[slot] = None
+                
+        inventory_list = []
+        for item in self.inventory:
+            if hasattr(item, 'to_dict'):
+                inventory_list.append(item.to_dict())
+            else:
+                inventory_list.append({
+                    "name": item.name,
+                    "slot": getattr(item, 'slot', ''),
+                    "attack": getattr(item, 'attack', 0),
+                    "defense": getattr(item, 'defense', 0),
+                    "stat_bonuses": getattr(item, 'stat_bonuses', {})
+                })
+                
+        return {
+            "equipment": equipment_dict,
+            "inventory": inventory_list
+        }
+        
+    def from_dict(self, data: Dict[str, Any]):
+        if not isinstance(data, dict):
+            return
+            
+        from .items import Weapon, Armor, Helmet, Boots, Accessory
+        
+        # Clear current equipment and inventory
+        for slot in self.equipment:
+            self.equipment[slot] = None
+        self.inventory.clear()
+        
+        # Restore equipment
+        if "equipment" in data and isinstance(data["equipment"], dict):
+            for slot, item_data in data["equipment"].items():
+                if item_data is None:
+                    continue
+                    
+                if not isinstance(item_data, dict):
+                    continue
+                    
+                item_class = None
+                if slot == "weapon":
+                    item_class = Weapon
+                elif slot == "armor":
+                    item_class = Armor
+                elif slot == "helmet":
+                    item_class = Helmet
+                elif slot == "boots":
+                    item_class = Boots
+                elif slot == "accessory":
+                    item_class = Accessory
+                    
+                if item_class:
+                    name = item_data.get("name", "Unknown Item")
+                    attack = item_data.get("attack", 0)
+                    defense = item_data.get("defense", 0)
+                    stat_bonuses = item_data.get("stat_bonuses", {})
+                    
+                    item = item_class(name, attack, defense, 0)
+                    item.stat_bonuses = stat_bonuses
+                    self.equipment[slot] = item
+        
+        # Restore inventory
+        if "inventory" in data and isinstance(data["inventory"], list):
+            for item_data in data["inventory"]:
+                if not isinstance(item_data, dict):
+                    continue
+                    
+                name = item_data.get("name", "Unknown Item")
+                slot = item_data.get("slot", "")
+                attack = item_data.get("attack", 0)
+                defense = item_data.get("defense", 0)
+                stat_bonuses = item_data.get("stat_bonuses", {})
+                
+                item_class = None
+                if slot == "weapon":
+                    item_class = Weapon
+                elif slot == "armor":
+                    item_class = Armor
+                elif slot == "helmet":
+                    item_class = Helmet
+                elif slot == "boots":
+                    item_class = Boots
+                elif slot == "accessory":
+                    item_class = Accessory
+                else:
+                    item_class = Item
+                    
+                if item_class:
+                    item = item_class(name, attack, defense, 0) if item_class != Item else Item(name)
+                    if hasattr(item, 'stat_bonuses'):
+                        item.stat_bonuses = stat_bonuses
+                    self.inventory.append(item)
