@@ -54,8 +54,10 @@ class CombatManager:
         self.victory = False
         self.rewards: Dict = {}
         self.player_sequence_index = 0
-        self.action_delay = 0.8  # seconds between actions
+        self.action_delay = 0.5  # seconds between actions
         self.last_action_time = 0
+        self.last_tick_time = 0
+        self.tick_interval = 0.5  # seconds between ticks for action points
         self.action_manager = player.action_manager if hasattr(player, 'action_manager') else ActionManager()
         
         # Create skill and enemy managers
@@ -66,6 +68,8 @@ class CombatManager:
         
         # Initialize sounds
         init_combat_sounds()
+        
+
         
     def start_new_battle(self, enemy_level: Optional[int] = None):
         if enemy_level is None:
@@ -206,17 +210,19 @@ class CombatManager:
         if self.action_manager:
             if hasattr(self.player, 'id'):
                 logging.debug(f"Generating action for player {self.player.id}")
-                self.action_manager.generate_action(self.player.id, 1.0)
+                tick_rate = self.action_manager.action_generators[self.player.id]["current_rate"]
+                self.action_manager.generate_action(self.player.id, tick_rate)
                 player_action = self.action_manager.get_current_action(self.player.id)
-                logging.debug(f"Player action points: {player_action}")
+                logging.debug(f"Player action points: {player_action}, tick rate: {tick_rate}")
             else:
                 logging.debug("Player has no id attribute")
             
             if self.current_enemy and hasattr(self.current_enemy, 'id'):
                 logging.debug(f"Generating action for enemy {self.current_enemy.id}")
-                self.action_manager.generate_action(self.current_enemy.id, 1.0)
+                tick_rate = self.action_manager.action_generators[self.current_enemy.id]["current_rate"]
+                self.action_manager.generate_action(self.current_enemy.id, tick_rate)
                 enemy_action = self.action_manager.get_current_action(self.current_enemy.id)
-                logging.debug(f"Enemy action points: {enemy_action}")
+                logging.debug(f"Enemy action points: {enemy_action}, tick rate: {tick_rate}")
             elif self.current_enemy:
                 logging.debug("Enemy has no id attribute")
             else:

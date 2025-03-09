@@ -2,6 +2,8 @@ import pygame
 from typing import List, Dict, Callable, Tuple
 from enum import Enum
 import os
+from .ui_components import Button, draw_text, draw_health_bar
+from .asset_manager import AssetType
 
 class UIElement:
     def __init__(self, x: int, y: int, width: int, height: int):
@@ -126,39 +128,13 @@ class UIManager:
     def __init__(self, game):
         self.game = game
         self.elements: List[UIElement] = []
-        self.click_sound = None
-        self.drop_sound = None
-        self.load_sounds()
-        
-    def load_sounds(self):
-        """Load UI sound effects"""
-        try:
-            audio_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'audio')
-            click_path = os.path.join(audio_dir, 'ui_click.wav')
-            drop_path = os.path.join(audio_dir, 'ui_click2.mp3')
-            
-            if os.path.exists(click_path):
-                self.click_sound = pygame.mixer.Sound(click_path)
-            if os.path.exists(drop_path):
-                self.drop_sound = pygame.mixer.Sound(drop_path)
-        except Exception as e:
-            print(f"Error loading UI sounds: {e}")
-            
-    def play_click_sound(self):
-        """Play the UI click sound effect"""
-        if self.click_sound:
-            self.click_sound.play()
-            
-    def play_drop_sound(self):
-        """Play the UI drop sound effect"""
-        if self.drop_sound:
-            self.drop_sound.play()
+        self.audio_manager = game.audio_manager
+        self.asset_manager = game.asset_manager
         
     def clear(self):
         self.elements = []
         
     def add_element(self, element: UIElement):
-        # Add reference to UI manager for sounds
         if isinstance(element, Button):
             element.ui_manager = self
         self.elements.append(element)
@@ -174,6 +150,14 @@ class UIManager:
             element.update()
             
     def render(self):
+        # Check if we're on the main menu and should display the title image first
+        from .game import GameState
+        if self.game.state == GameState.MAIN_MENU:
+            title_image = self.asset_manager.get_image(AssetType.TITLE_SCREEN)
+            if title_image:
+                self.game.screen.blit(title_image, (0, 0))
+                
+        # Render all UI elements
         for element in self.elements:
             element.render(self.game.screen)
             
@@ -184,13 +168,28 @@ class UIManager:
         screen_width, screen_height = self.game.screen.get_size()
         
         if state == GameState.MAIN_MENU:
-            self.add_element(Label(screen_width // 2 - 150, 100, "Project Donut", (255, 215, 0), 48))
-            self.add_element(Label(screen_width // 2 - 100, 170, "Fantasy RPG", (220, 220, 220), 32))
+            # Position buttons in the lower part of the screen to not overlap with title image
+            button_width = 200
+            button_height = 40
+            button_x = screen_width // 2 - button_width // 2
             
-            self.add_element(Button(screen_width // 2 - 100, 250, 200, 40, "New Game", 
+            # Add game title and subtitle only if no title image
+            if not self.asset_manager.get_image(AssetType.TITLE_SCREEN):
+                self.add_element(Label(screen_width // 2 - 150, 100, "Project Donut", (255, 215, 0), 48))
+                self.add_element(Label(screen_width // 2 - 100, 170, "Fantasy RPG", (220, 220, 220), 32))
+            
+            # Position buttons at the bottom third of the screen
+            start_y = screen_height - 200
+            
+            self.add_element(Button(button_x, start_y, button_width, button_height, "New Game", 
                                    lambda: self._start_new_game()))
             
-            self.add_element(Button(screen_width // 2 - 100, 310, 200, 40, "Exit", 
+            load_btn = Button(button_x, start_y + 60, button_width, button_height, "Load Game", 
+                             lambda: self._load_game())
+            load_btn.enabled = self.game.save_manager.save_exists()
+            self.add_element(load_btn)
+            
+            self.add_element(Button(button_x, start_y + 120, button_width, button_height, "Exit", 
                                    lambda: self._exit_game()))
                                    
         elif state == GameState.CHARACTER:
@@ -354,19 +353,29 @@ class UIManager:
                                    lambda: self.game.change_state(GameState.CHARACTER)))
     
     def _start_new_game(self):
+        from .game import GameState
         self.game.create_new_player()
         self.game.change_state(GameState.CHARACTER)
+        
+    def _load_game(self):
+        if self.game.load_game():
+            self.game.audio_manager.play_ui_click()
         
     def _exit_game(self):
         self.game.running = False
         
+    def play_drop_sound(self):
+        self.audio_manager.play_ui_drop()
+        
     def _start_combat(self):
+        from .game import GameState
         if self.game.combat_manager:
             self.game.combat_manager.start_new_battle()
             self.game.change_state(GameState.COMBAT)
             
     def _add_skill_to_sequence(self, skill):
         """Add a skill to the combat sequence"""
+        from .game import GameState
         if self.game.player:
             # Find the first empty slot or add to end
             for i in range(5):  # Max 5 skills in sequence
@@ -388,6 +397,7 @@ class UIManager:
     
     def _remove_skill_from_sequence(self, index):
         """Remove a skill from the combat sequence at the given index"""
+        from .game import GameState
         if self.game.player and 0 <= index < len(self.game.player.combat_sequence):
             # Set the slot to None
             self.game.player.combat_sequence[index] = None

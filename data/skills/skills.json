@@ -242,5 +242,181 @@
     "conditions": [
       {"type": "min_stat", "stat": "dexterity", "value": 12}
     ]
+  },
+  "regenerate": {
+    "name": "Regenerate",
+    "description": "Regenerate health over time",
+    "cooldown": 4,
+    "energy_cost": 4,
+    "action_cost": 6.0,
+    "sound": "heal",
+    "effects": [
+      {
+        "type": "healing",
+        "params": {
+          "base_value": 10,
+          "stat_scaling": {"constitution": 0.2},
+          "message": "{user} begins to regenerate health, healing for {healing} points!"
+        }
+      },
+      {
+        "type": "buff",
+        "params": {
+          "buff_type": "regeneration",
+          "value": 5,
+          "duration": 3,
+          "message": "{user} will continue to regenerate health!"
+        }
+      }
+    ]
+  },
+  "shield_bash": {
+    "name": "Shield Bash",
+    "description": "Bash with a shield, damaging and stunning the enemy",
+    "cooldown": 3,
+    "energy_cost": 3,
+    "action_cost": 5.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 8,
+          "stat_scaling": {"strength": 0.15},
+          "message": "{user} bashes {target} with a shield for {damage} damage!"
+        }
+      },
+      {
+        "type": "status",
+        "params": {
+          "status_type": "stunned",
+          "value": 1,
+          "duration": 1,
+          "chance": 0.5,
+          "message": "{target} is stunned!"
+        }
+      }
+    ]
+  },
+  "shadow_step": {
+    "name": "Shadow Step",
+    "description": "Move quickly through the shadows for a surprise attack",
+    "cooldown": 3,
+    "energy_cost": 3,
+    "action_cost": 3.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "buff",
+        "params": {
+          "buff_type": "evasion",
+          "value": 5,
+          "duration": 1,
+          "message": "{user} steps through the shadows!"
+        }
+      },
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 10,
+          "stat_scaling": {"dexterity": 0.2},
+          "message": "{user} strikes {target} from the shadows for {damage} damage!"
+        }
+      }
+    ]
+  },
+  "bone_spear": {
+    "name": "Bone Spear",
+    "description": "Launches a spear made of bone that pierces through defenses",
+    "cooldown": 3,
+    "energy_cost": 3,
+    "action_cost": 5.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 12,
+          "stat_scaling": {"intelligence": 0.15},
+          "armor_penetration": 0.5,
+          "message": "{user} launches a bone spear at {target} for {damage} damage, piercing through armor!"
+        }
+      }
+    ]
+  },
+  "battle_cry": {
+    "name": "Battle Cry",
+    "description": "Let out a fierce battle cry to boost strength",
+    "cooldown": 4,
+    "energy_cost": 3,
+    "action_cost": 4.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "buff",
+        "params": {
+          "buff_type": "strength",
+          "value": 4,
+          "duration": 3,
+          "message": "{user} lets out a battle cry, increasing strength!"
+        }
+      }
+    ]
+  },
+  "web_shot": {
+    "name": "Web Shot",
+    "description": "Fire a sticky web to slow the target",
+    "cooldown": 3,
+    "energy_cost": 2,
+    "action_cost": 4.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 3,
+          "stat_scaling": {"dexterity": 0.1},
+          "message": "{user} fires a web at {target} for {damage} damage!"
+        }
+      },
+      {
+        "type": "status",
+        "params": {
+          "status_type": "slowed",
+          "value": 0.7,
+          "duration": 2,
+          "chance": 0.9,
+          "message": "{target} is slowed by the sticky web!"
+        }
+      }
+    ]
+  },
+  "flame_breath": {
+    "name": "Flame Breath",
+    "description": "Breathe a cone of fire at the enemy",
+    "cooldown": 4,
+    "energy_cost": 5,
+    "action_cost": 7.0,
+    "sound": "attack",
+    "effects": [
+      {
+        "type": "damage",
+        "params": {
+          "base_value": 18,
+          "stat_scaling": {"intelligence": 0.2},
+          "message": "{user} breathes fire at {target} for {damage} damage!"
+        }
+      },
+      {
+        "type": "status",
+        "params": {
+          "status_type": "burning",
+          "value": 4,
+          "duration": 2,
+          "chance": 0.7,
+          "message": "{target} is burning!"
+        }
+      }
+    ]
   }
 }

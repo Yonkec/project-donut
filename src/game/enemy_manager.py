@@ -68,12 +68,16 @@ class Enemy:
         # Action management
         self.action_manager = action_manager
         if self.action_manager:
-            action_speed = data.get("action_speed", 1.0)
+            action_speed = data.get("action_speed", 2.0)
             self.action_manager.register_entity(self.id, action_speed)
         
         # AI behavior
         self.behavior = data.get("behavior", "random")
         self.skill_weights = data.get("skill_weights", {})
+        
+        # Skill sequence for static behavior
+        self.skill_sequence = data.get("skill_sequence", [])
+        self.current_sequence_index = 0
         
     def _calculate_max_hp(self) -> int:
         base_hp = 30
@@ -178,21 +182,13 @@ class Enemy:
         return messages
         
     def choose_action(self, player) -> Any:
-        """Choose a skill to use in combat based on behavior pattern"""
+        """Choose a skill to use in combat based on predefined sequence"""
         available_skills = self._get_available_skills()
         
         if not available_skills:
             return self.skills[0] if self.skills else None
         
-        if self.behavior == "random":
-            return random.choice(available_skills)
-        elif self.behavior == "weighted":
-            return self._choose_weighted_skill(available_skills)
-        elif self.behavior == "smart":
-            return self._choose_smart_skill(available_skills)
-        
-        # Default fallback
-        return random.choice(available_skills)
+        return self._choose_sequence_skill(available_skills)
         
     def _get_available_skills(self) -> List[Any]:
         if self.action_manager and hasattr(self, 'id'):
@@ -201,26 +197,21 @@ class Enemy:
         else:
             return [skill for skill in self.skills if skill.can_use(self)]
             
-    def _choose_weighted_skill(self, available_skills: List[Any]) -> Any:
-        weighted_skills = []
-        for skill in available_skills:
-            weight = self.skill_weights.get(skill.id, 1)
-            weighted_skills.extend([skill] * weight)
-        return random.choice(weighted_skills) if weighted_skills else available_skills[0]
+
         
-    def _choose_smart_skill(self, available_skills: List[Any]) -> Any:
-        # Use healing when low HP
-        if self.current_hp < self.max_hp * 0.3:
-            healing_skills = [s for s in available_skills if any(e["type"] == "healing" for e in s.effects)]
-            if healing_skills:
-                return random.choice(healing_skills)
-        
-        # Otherwise use damage skills
-        damage_skills = [s for s in available_skills if any(e["type"] == "damage" for e in s.effects)]
-        if damage_skills:
-            return random.choice(damage_skills)
+    def _choose_sequence_skill(self, available_skills: List[Any]) -> Any:
+        if not self.skill_sequence or not available_skills:
+            return available_skills[0] if available_skills else None
             
-        return random.choice(available_skills)
+        skill_id = self.skill_sequence[self.current_sequence_index]
+        matching_skills = [s for s in available_skills if s.id == skill_id]
+        
+        self.current_sequence_index = (self.current_sequence_index + 1) % len(self.skill_sequence)
+        
+        if matching_skills:
+            return matching_skills[0]
+        
+        return available_skills[0]
 
 
 class EnemyManager:
@@ -236,7 +227,7 @@ class EnemyManager:
         self._initialize_skill_manager()
     
     def create_enemy(self, enemy_id: str, enemy_data: Dict[str, Any], level: Optional[int] = None) -> Enemy:
-        """Create an enemy from data, possibly using a template"""
+        """Create an enemy from data"""
         processed_data = self._process_enemy_data(enemy_id, enemy_data, level)
         return Enemy(enemy_id, processed_data, self.skill_manager, self.action_manager)
         
@@ -247,7 +238,7 @@ class EnemyManager:
             self.skill_manager.load_all_skills()
             
     def _process_enemy_data(self, enemy_id: str, enemy_data: Dict[str, Any], level: Optional[int] = None) -> Dict[str, Any]:
-        processed_data = self._apply_template(enemy_data)
+        processed_data = enemy_data.copy()
         
         # Override level if specified
         if level is not None:
@@ -256,24 +247,7 @@ class EnemyManager:
             
         return processed_data
         
-    def _apply_template(self, enemy_data: Dict[str, Any]) -> Dict[str, Any]:
-        if "template" in enemy_data and enemy_data["template"] in self.database.templates:
-            # Start with template and override with specific data
-            template = self.database.get_template(enemy_data["template"]).copy()
-            
-            for key, value in enemy_data.items():
-                if key != "template":
-                    if key == "skills" and "skills" in template:
-                        # For skills, we might want to replace or extend
-                        if enemy_data.get("extend_skills", False):
-                            template[key].extend(value)
-                        else:
-                            template[key] = value
-                    else:
-                        template[key] = value
-                        
-            return template
-        return enemy_data
+
         
     def _update_name_with_level(self, enemy_data: Dict[str, Any], level: int) -> Dict[str, Any]:
         if "name" in enemy_data and "Lv." in enemy_data["name"]:

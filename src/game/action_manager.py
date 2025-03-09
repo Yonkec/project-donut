@@ -7,7 +7,7 @@ class ActionManager:
         self.action_generators = {}
         self.action_consumers = {}
         
-    def register_entity(self, entity_id: str, base_action_rate: float = 1.0):
+    def register_entity(self, entity_id: str, base_action_rate: float):
         logging.debug(f"Registering entity {entity_id} with base rate {base_action_rate}")
         self.action_generators[entity_id] = {
             "base_rate": base_action_rate,
@@ -90,18 +90,16 @@ class ActionManager:
             return "stunned" in self.action_generators[entity_id]["modifiers"]
         return False
     
-    def generate_action(self, entity_id: str, tick_time: float = 1.0) -> float:
+    def generate_action(self, entity_id: str, tick_time: float) -> float:
         if not self._entity_exists(entity_id):
             return 0.0
         
-        # Don't generate action if stunned
         if self.is_stunned(entity_id):
             return 0.0
             
         rate = self.action_generators[entity_id]["current_rate"]
         action_gained = rate * tick_time
         
-        # Add the action points
         self.action_consumers[entity_id]["current_action"] += action_gained
         
         return action_gained
@@ -162,6 +160,13 @@ class ActionManager:
         sequence = self.action_consumers[entity_id]["skill_sequence"]
         if not sequence:
             return
+            
+        # Move the first skill to the end of the sequence
+        first_skill = sequence.pop(0)
+        sequence.append(first_skill)
+        
+        # Set the next skill from the updated sequence
+        self.action_consumers[entity_id]["next_skill"] = sequence[0] if sequence else None
             
         # Move the first skill to the end of the sequence
         first_skill = sequence.pop(0)

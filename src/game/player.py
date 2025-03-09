@@ -26,7 +26,7 @@ class Player:
         
         self.action_manager = action_manager
         if self.action_manager:
-            self.action_manager.register_entity(self.id, 1.0)
+            self.action_manager.register_entity(self.id, 2.0) #player's action rate
         
         # Initialize component managers after HP is set
         self.inventory = PlayerInventory(self)
