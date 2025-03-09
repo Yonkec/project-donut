@@ -30,6 +30,7 @@ class Game:
         self.width = width
         self.height = height
         self.state = GameState.MAIN_MENU
+        self.previous_state = GameState.MAIN_MENU  # Track previous state for returning from settings
         self.action_manager = ActionManager()
         self.audio_manager = AudioManager()
         self.asset_manager = AssetManager(width, height)
@@ -83,6 +84,13 @@ class Game:
         
     def change_state(self, new_state: GameState):
         old_state = self.state
+        
+        # Store previous state when entering settings, but don't track settings as previous state
+        if new_state == GameState.SETTINGS:
+            self.previous_state = old_state
+        elif old_state != GameState.SETTINGS:
+            self.previous_state = old_state
+            
         self.state = new_state
         self.ui_manager.build_ui_for_state(new_state)
         

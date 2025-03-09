@@ -688,5 +688,5 @@ class StateUIBuilder:
         self.ui_manager.add_element(Button(
             back_button_x, back_button_y, button_width, button_height, 
             "Back",
-            lambda: self.game.change_state(GameState.MAIN_MENU)
+            lambda: self.game.change_state(self.game.previous_state)
         ))
