@@ -3,11 +3,16 @@ from typing import Dict, Optional
 class Item:
     def __init__(self, name: str, value: int):
         self.name = name
-        self.value = value  # Gold value
+        self.value = value
         
     def use(self, target) -> bool:
-        """Use the item on the target. Returns True if successful."""
         return False
+        
+    def to_dict(self) -> Dict:
+        return {
+            "name": self.name,
+            "value": self.value
+        }
 
 class Equipment(Item):
     VALID_SLOTS = ["weapon", "armor", "helmet", "boots", "accessory"]
@@ -20,12 +25,20 @@ class Equipment(Item):
             
         self.slot = slot
         self.stat_bonuses = stat_bonuses or {}
+        
+    def to_dict(self) -> Dict:
+        data = super().to_dict()
+        data.update({
+            "slot": self.slot,
+            "stat_bonuses": self.stat_bonuses
+        })
+        return data
 
 class Weapon(Equipment):
     def __init__(self, name: str, damage: int, value: int, str_bonus: int = 0, dex_bonus: int = 0):
         stat_bonuses = {"strength": str_bonus, "dexterity": dex_bonus}
         super().__init__(name, value, "weapon", stat_bonuses)
-        self._damage = damage  # Use a protected attribute
+        self._damage = damage
         
     @property
     def damage(self):
@@ -34,6 +47,11 @@ class Weapon(Equipment):
     @damage.setter
     def damage(self, value):
         self._damage = value
+        
+    def to_dict(self) -> Dict:
+        data = super().to_dict()
+        data["damage"] = self.damage
+        return data
 
 class Armor(Equipment):
     def __init__(self, name: str, defense: int, value: int, con_bonus: int = 0):
@@ -48,6 +66,11 @@ class Armor(Equipment):
     @defense.setter
     def defense(self, value):
         self._defense = value
+        
+    def to_dict(self) -> Dict:
+        data = super().to_dict()
+        data["defense"] = self.defense
+        return data
 
 class Helmet(Equipment):
     def __init__(self, name: str, defense: int, value: int, int_bonus: int = 0):
@@ -62,6 +85,11 @@ class Helmet(Equipment):
     @defense.setter
     def defense(self, value):
         self._defense = value
+        
+    def to_dict(self) -> Dict:
+        data = super().to_dict()
+        data["defense"] = self.defense
+        return data
 
 class Boots(Equipment):
     def __init__(self, name: str, defense: int, value: int, dex_bonus: int = 0):
@@ -76,15 +104,23 @@ class Boots(Equipment):
     @defense.setter
     def defense(self, value):
         self._defense = value
+        
+    def to_dict(self) -> Dict:
+        data = super().to_dict()
+        data["defense"] = self.defense
+        return data
 
 class Accessory(Equipment):
     def __init__(self, name: str, value: int, stat_bonuses: Dict[str, int]):
         super().__init__(name, value, "accessory", stat_bonuses)
+        
+    def to_dict(self) -> Dict:
+        return super().to_dict()
 
 class Potion(Item):
     def __init__(self, name: str, value: int, effect_type: str, effect_value: int):
         super().__init__(name, value)
-        self.effect_type = effect_type  # "heal", "strength", etc.
+        self.effect_type = effect_type
         self.effect_value = effect_value
         
     def use(self, target) -> bool:
@@ -93,6 +129,14 @@ class Potion(Item):
                 target.heal(self.effect_value)
                 return True
         return False
+        
+    def to_dict(self) -> Dict:
+        data = super().to_dict()
+        data.update({
+            "effect_type": self.effect_type,
+            "effect_value": self.effect_value
+        })
+        return data
 
 def create_starter_weapon() -> Weapon:
     return Weapon("Wooden Sword", 3, 10)

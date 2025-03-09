@@ -104,13 +104,23 @@ class PlayerInventory:
         equipment_dict = {}
         for slot, item in self.equipment.items():
             if item:
-                equipment_dict[slot] = item.to_dict() if hasattr(item, 'to_dict') else {
-                    "name": item.name,
-                    "slot": item.slot,
-                    "attack": getattr(item, 'attack', 0),
-                    "defense": getattr(item, 'defense', 0),
-                    "stat_bonuses": getattr(item, 'stat_bonuses', {})
-                }
+                if hasattr(item, 'to_dict'):
+                    equipment_dict[slot] = item.to_dict()
+                else:
+                    item_dict = {
+                        "name": item.name,
+                        "slot": item.slot,
+                        "value": getattr(item, 'value', 0),
+                        "stat_bonuses": getattr(item, 'stat_bonuses', {})
+                    }
+                    
+                    # Save specific attributes based on item type
+                    if slot == "weapon" and hasattr(item, 'damage'):
+                        item_dict["damage"] = item.damage
+                    elif hasattr(item, 'defense'):
+                        item_dict["defense"] = item.defense
+                        
+                    equipment_dict[slot] = item_dict
             else:
                 equipment_dict[slot] = None
                 
@@ -119,13 +129,21 @@ class PlayerInventory:
             if hasattr(item, 'to_dict'):
                 inventory_list.append(item.to_dict())
             else:
-                inventory_list.append({
+                item_dict = {
                     "name": item.name,
-                    "slot": getattr(item, 'slot', ''),
-                    "attack": getattr(item, 'attack', 0),
-                    "defense": getattr(item, 'defense', 0),
-                    "stat_bonuses": getattr(item, 'stat_bonuses', {})
-                })
+                    "value": getattr(item, 'value', 0),
+                    "slot": getattr(item, 'slot', '')
+                }
+                
+                # Save specific attributes based on item type
+                if hasattr(item, 'damage'):
+                    item_dict["damage"] = item.damage
+                if hasattr(item, 'defense'):
+                    item_dict["defense"] = item.defense
+                if hasattr(item, 'stat_bonuses'):
+                    item_dict["stat_bonuses"] = item.stat_bonuses
+                    
+                inventory_list.append(item_dict)
                 
         return {
             "equipment": equipment_dict,
@@ -136,7 +154,7 @@ class PlayerInventory:
         if not isinstance(data, dict):
             return
             
-        from .items import Weapon, Armor, Helmet, Boots, Accessory
+        from .items import Weapon, Armor, Helmet, Boots, Accessory, Item, Potion
         
         # Clear current equipment and inventory
         for slot in self.equipment:
@@ -152,27 +170,31 @@ class PlayerInventory:
                 if not isinstance(item_data, dict):
                     continue
                     
-                item_class = None
+                name = item_data.get("name", "Unknown Item")
+                value = item_data.get("value", 0)
+                stat_bonuses = item_data.get("stat_bonuses", {})
+                
                 if slot == "weapon":
-                    item_class = Weapon
+                    damage = item_data.get("damage", 0)
+                    str_bonus = stat_bonuses.get("strength", 0)
+                    dex_bonus = stat_bonuses.get("dexterity", 0)
+                    item = Weapon(name, damage, value, str_bonus, dex_bonus)
                 elif slot == "armor":
-                    item_class = Armor
-                elif slot == "helmet":
-                    item_class = Helmet
-                elif slot == "boots":
-                    item_class = Boots
-                elif slot == "accessory":
-                    item_class = Accessory
-                    
-                if item_class:
-                    name = item_data.get("name", "Unknown Item")
-                    attack = item_data.get("attack", 0)
                     defense = item_data.get("defense", 0)
-                    stat_bonuses = item_data.get("stat_bonuses", {})
+                    con_bonus = stat_bonuses.get("constitution", 0)
+                    item = Armor(name, defense, value, con_bonus)
+                elif slot == "helmet":
+                    defense = item_data.get("defense", 0)
+                    int_bonus = stat_bonuses.get("intelligence", 0)
+                    item = Helmet(name, defense, value, int_bonus)
+                elif slot == "boots":
+                    defense = item_data.get("defense", 0)
+                    dex_bonus = stat_bonuses.get("dexterity", 0)
+                    item = Boots(name, defense, value, dex_bonus)
+                elif slot == "accessory":
+                    item = Accessory(name, value, stat_bonuses)
                     
-                    item = item_class(name, attack, defense, 0)
-                    item.stat_bonuses = stat_bonuses
-                    self.equipment[slot] = item
+                self.equipment[slot] = item
         
         # Restore inventory
         if "inventory" in data and isinstance(data["inventory"], list):
@@ -181,27 +203,38 @@ class PlayerInventory:
                     continue
                     
                 name = item_data.get("name", "Unknown Item")
+                value = item_data.get("value", 0)
                 slot = item_data.get("slot", "")
-                attack = item_data.get("attack", 0)
-                defense = item_data.get("defense", 0)
-                stat_bonuses = item_data.get("stat_bonuses", {})
                 
-                item_class = None
-                if slot == "weapon":
-                    item_class = Weapon
-                elif slot == "armor":
-                    item_class = Armor
-                elif slot == "helmet":
-                    item_class = Helmet
-                elif slot == "boots":
-                    item_class = Boots
-                elif slot == "accessory":
-                    item_class = Accessory
-                else:
-                    item_class = Item
+                # Determine item type and create appropriate object
+                if "effect_type" in item_data and "effect_value" in item_data:
+                    # This is a potion
+                    effect_type = item_data.get("effect_type", "heal")
+                    effect_value = item_data.get("effect_value", 0)
+                    item = Potion(name, value, effect_type, effect_value)
+                elif slot == "weapon" and "damage" in item_data:
+                    damage = item_data.get("damage", 0)
+                    stat_bonuses = item_data.get("stat_bonuses", {})
+                    str_bonus = stat_bonuses.get("strength", 0)
+                    dex_bonus = stat_bonuses.get("dexterity", 0)
+                    item = Weapon(name, damage, value, str_bonus, dex_bonus)
+                elif slot in ["armor", "helmet", "boots"] and "defense" in item_data:
+                    defense = item_data.get("defense", 0)
+                    stat_bonuses = item_data.get("stat_bonuses", {})
                     
-                if item_class:
-                    item = item_class(name, attack, defense, 0) if item_class != Item else Item(name)
-                    if hasattr(item, 'stat_bonuses'):
-                        item.stat_bonuses = stat_bonuses
-                    self.inventory.append(item)
+                    if slot == "armor":
+                        con_bonus = stat_bonuses.get("constitution", 0)
+                        item = Armor(name, defense, value, con_bonus)
+                    elif slot == "helmet":
+                        int_bonus = stat_bonuses.get("intelligence", 0)
+                        item = Helmet(name, defense, value, int_bonus)
+                    elif slot == "boots":
+                        dex_bonus = stat_bonuses.get("dexterity", 0)
+                        item = Boots(name, defense, value, dex_bonus)
+                elif slot == "accessory":
+                    stat_bonuses = item_data.get("stat_bonuses", {})
+                    item = Accessory(name, value, stat_bonuses)
+                else:
+                    item = Item(name, value)
+                    
+                self.inventory.append(item)
