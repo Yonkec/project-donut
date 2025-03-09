@@ -1,5 +1,6 @@
 from typing import Dict, List, Any, Optional, Callable
 import random
+import logging
 from .enemy_database import EnemyDatabase
 from .skill import Skill
 from .skill_manager import SkillManager
@@ -41,25 +42,9 @@ class Enemy:
             if skill:
                 self.skills.append(skill)
         
-        # Ensure we have at least a basic attack
+        # Log a notice if enemy has no skills
         if not self.skills:
-            basic_attack = self.skill_manager.get_skill("basic_attack")
-            if not basic_attack:
-                basic_attack_data = {
-                    "name": "Basic Attack",
-                    "description": "A simple attack",
-                    "effects": [
-                        {
-                            "type": "damage",
-                            "params": {
-                                "base_value": 5,
-                                "stat_scaling": {"strength": 1.0}
-                            }
-                        }
-                    ]
-                }
-                basic_attack = self.skill_manager.create_skill("basic_attack", basic_attack_data)
-            self.skills.append(basic_attack)
+            logging.warning(f"Enemy {self.name} (ID: {self.id}) has no defined skills")
         
         # Combat state
         self.buffs = {}
@@ -186,7 +171,7 @@ class Enemy:
         available_skills = self._get_available_skills()
         
         if not available_skills:
-            return self.skills[0] if self.skills else None
+            return None
         
         return self._choose_sequence_skill(available_skills)
         

@@ -58,6 +58,11 @@ class Game:
         if self.state == GameState.COMBAT:
             if self.combat_manager:
                 combat_finished = self.combat_manager.update()
+                
+                # Rebuild the UI to reflect the updated combat state
+                self.ui_manager.clear()
+                self.ui_manager.build_ui_for_state(self.state)
+                
                 if combat_finished:
                     self.state = GameState.RESULTS
         

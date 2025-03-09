@@ -156,6 +156,10 @@ class UIManager:
             title_image = self.asset_manager.get_image(AssetType.TITLE_SCREEN)
             if title_image:
                 self.game.screen.blit(title_image, (0, 0))
+        
+        # Display enemy image if in combat
+        if self.game.state == GameState.COMBAT and hasattr(self, 'enemy_image') and hasattr(self, 'enemy_image_pos'):
+            self.game.screen.blit(self.enemy_image, self.enemy_image_pos)
                 
         # Render all UI elements
         for element in self.elements:
@@ -279,55 +283,84 @@ class UIManager:
                                    lambda: self.game.change_state(GameState.CHARACTER)))
                                    
         elif state == GameState.COMBAT:
-            self.add_element(Label(20, 20, "Combat", (255, 0, 0), 36))
+            # Get screen dimensions for layout calculations
+            screen_width, screen_height = self.game.screen.get_size()
+            
+            # Title
+            self.add_element(Label(screen_width // 2 - 50, 20, "Combat", (255, 0, 0), 36))
             
             player = self.game.player
             enemy = self.game.combat_manager.current_enemy
             action_manager = self.game.combat_manager.action_manager
             
+            # Player section - left side
+            player_section_x = 50
+            player_section_y = 80
+            
             # Player info
-            self.add_element(Label(50, 80, f"{player.name}", (220, 220, 220)))
-            self.add_element(Label(50, 110, f"HP: {player.current_hp}/{player.max_hp}", (220, 220, 220)))
+            self.add_element(Label(player_section_x, player_section_y, f"{player.name}", (220, 220, 220), 28))
+            self.add_element(Label(player_section_x, player_section_y + 40, f"HP: {player.current_hp}/{player.max_hp}", (220, 220, 220)))
             
             # Player HP bar
-            player_hp_bar = self.add_element(ProgressBar(50, 140, 200, 20, player.current_hp / player.max_hp, (0, 200, 0)))
+            hp_ratio = max(0, min(1, player.current_hp / player.max_hp))
+            player_hp_bar = self.add_element(ProgressBar(player_section_x, player_section_y + 70, 200, 20, hp_ratio, (0, 200, 0)))
             
+            # Player AP bar
             player_action = 0.0
             if action_manager and hasattr(player, 'id'):
                 player_action = action_manager.get_current_action(player.id)
             
             max_ap = 20.0
-            player_ap_bar = self.add_element(ProgressBar(50, 170, 200, 20, min(player_action / max_ap, 1.0), (100, 200, 255)))
-            self.add_element(Label(50, 195, f"AP: {player_action:.1f}/{max_ap}", (100, 200, 255), 20))
+            ap_ratio = max(0, min(1, player_action / max_ap))
+            player_ap_bar = self.add_element(ProgressBar(player_section_x, player_section_y + 110, 200, 20, ap_ratio, (100, 200, 255)))
+            self.add_element(Label(player_section_x, player_section_y + 135, f"AP: {player_action:.1f}/{max_ap}", (100, 200, 255), 20))
             
-
+            # Enemy section - right side
+            enemy_section_x = screen_width - 250
+            enemy_section_y = 80
             
             # Enemy info
-            self.add_element(Label(screen_width - 250, 80, f"{enemy.name}", (220, 100, 100)))
-            self.add_element(Label(screen_width - 250, 110, f"HP: {enemy.current_hp}/{enemy.max_hp}", (220, 100, 100)))
+            self.add_element(Label(enemy_section_x, enemy_section_y, f"{enemy.name}", (220, 100, 100), 28))
+            self.add_element(Label(enemy_section_x, enemy_section_y + 40, f"HP: {enemy.current_hp}/{enemy.max_hp}", (220, 100, 100)))
             
             # Enemy HP bar
-            enemy_hp_bar = self.add_element(ProgressBar(screen_width - 250, 140, 200, 20, enemy.current_hp / enemy.max_hp, (200, 0, 0)))
+            hp_ratio = max(0, min(1, enemy.current_hp / enemy.max_hp))
+            enemy_hp_bar = self.add_element(ProgressBar(enemy_section_x, enemy_section_y + 70, 200, 20, hp_ratio, (200, 0, 0)))
             
+            # Enemy AP bar
             enemy_action = 0.0
             if enemy and action_manager and hasattr(enemy, 'id'):
                 enemy_action = action_manager.get_current_action(enemy.id)
             
-            max_ap = 20.0
-            enemy_ap_bar = self.add_element(ProgressBar(screen_width - 250, 170, 200, 20, min(enemy_action / max_ap, 1.0), (255, 150, 100)))
-            self.add_element(Label(screen_width - 250, 195, f"AP: {enemy_action:.1f}/{max_ap}", (255, 150, 100), 20))
+            ap_ratio = max(0, min(1, enemy_action / max_ap))
+            enemy_ap_bar = self.add_element(ProgressBar(enemy_section_x, enemy_section_y + 110, 200, 20, ap_ratio, (255, 150, 100)))
+            self.add_element(Label(enemy_section_x, enemy_section_y + 135, f"AP: {enemy_action:.1f}/{max_ap}", (255, 150, 100), 20))
             
-
+            # Add enemy logo (hardcoded to goblin for now)
+            enemy_image = self.asset_manager.get_image(AssetType.ENEMY_GOBLIN)
+            if enemy_image:
+                enemy_image = pygame.transform.scale(enemy_image, (80, 80))
+                # Add the enemy image as a direct render in the update method
+                self.enemy_image = enemy_image
+                self.enemy_image_pos = (enemy_section_x + 60, enemy_section_y + 160)
             
-            # Combat log
-            self.add_element(Label(50, 200, "Combat Log:", (180, 180, 220)))
+            # Combat log section - bottom
+            log_section_y = screen_height - 220  # Move up to prevent cutoff
+            self.add_element(Label(50, log_section_y, "Combat Log:", (180, 180, 220), 24))
             
-            log_y = 240
-            for message in self.game.combat_manager.combat_log[-5:]:
-                self.add_element(Label(70, log_y, message, (180, 180, 220)))
+            # Draw a semi-transparent background for the combat log
+            log_bg = pygame.Surface((screen_width - 100, 160))  # Reduce height slightly
+            log_bg.set_alpha(50)
+            log_bg.fill((50, 50, 70))
+            self.game.screen.blit(log_bg, (50, log_section_y + 30))
+            
+            # Display the most recent combat log messages
+            log_y = log_section_y + 40
+            # Show fewer messages to prevent overflow
+            recent_messages = self.game.combat_manager.combat_log[-5:]
+            for message in recent_messages:
+                self.add_element(Label(70, log_y, message, (200, 200, 240)))
                 log_y += 30
-                
-
                 
         elif state == GameState.RESULTS:
             self.add_element(Label(20, 20, "Battle Results", (255, 215, 0), 36))
