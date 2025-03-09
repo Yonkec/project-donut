@@ -62,6 +62,8 @@ class PlayerInventory:
         
         old_item = self.equipment[item.slot]
         if old_item:
+            if not hasattr(self, 'inventory') or self.inventory is None:
+                self.inventory = []
             self.inventory.append(old_item)
         
         self.equipment[item.slot] = item
@@ -71,6 +73,8 @@ class PlayerInventory:
     def unequip_item(self, slot: str) -> bool:
         if slot in self.equipment and self.equipment[slot]:
             item = self.equipment[slot]
+            if not hasattr(self, 'inventory') or self.inventory is None:
+                self.inventory = []
             self.inventory.append(item)
             self.equipment[slot] = None
             self.player._update_hp_after_stat_change()
@@ -85,6 +89,8 @@ class PlayerInventory:
         return defense
     
     def add_to_inventory(self, item: Item) -> bool:
+        if not hasattr(self, 'inventory') or self.inventory is None:
+            self.inventory = []
         self.inventory.append(item)
         return True
     
@@ -159,7 +165,12 @@ class PlayerInventory:
         # Clear current equipment and inventory
         for slot in self.equipment:
             self.equipment[slot] = None
-        self.inventory.clear()
+            
+        # Ensure inventory is initialized
+        if not hasattr(self, 'inventory') or self.inventory is None:
+            self.inventory = []
+        else:
+            self.inventory.clear()
         
         # Restore equipment
         if "equipment" in data and isinstance(data["equipment"], dict):
@@ -237,4 +248,6 @@ class PlayerInventory:
                 else:
                     item = Item(name, value)
                     
+                if not hasattr(self, 'inventory') or self.inventory is None:
+                    self.inventory = []
                 self.inventory.append(item)

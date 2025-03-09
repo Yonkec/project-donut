@@ -92,8 +92,14 @@ def healing_effect(user, target, params):
     base_healing = apply_stat_scaling(user, base_healing, params)
     healing = apply_variance(base_healing, params, is_damage=False)
     
-    actual_healing = target.heal(healing)
-    message = format_healing_message(user, target, actual_healing, params)
+    # Determine the healing target - by default, healing should be applied to the caster (user)
+    # unless explicitly specified to target the opponent
+    heal_target = user
+    if params.get("target_opponent", False):
+        heal_target = target
+    
+    actual_healing = heal_target.heal(healing)
+    message = format_healing_message(user, heal_target, actual_healing, params)
     
     # Add the healing value to the params for message formatting
     if "message" in params:
@@ -107,7 +113,10 @@ def healing_effect(user, target, params):
 def format_healing_message(user, target, healing, params):
     message = params.get("message", "")
     if not message:
-        return f"{user.name} heals {target.name} for {healing} health!"
+        if user == target:
+            return f"{user.name} heals for {healing} health!"
+        else:
+            return f"{user.name} heals {target.name} for {healing} health!"
     
     # Add values to params for message formatting
     params["user"] = user.name
@@ -118,7 +127,10 @@ def format_healing_message(user, target, healing, params):
         return message.format(**params)
     except KeyError:
         # Fallback in case of missing keys
-        return f"{user.name} heals {target.name} for {healing} health!"
+        if user == target:
+            return f"{user.name} heals for {healing} health!"
+        else:
+            return f"{user.name} heals {target.name} for {healing} health!"
 
 def buff_effect(user, target, params):
     buff_type = params.get("buff_type", "defense")
