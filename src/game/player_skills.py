@@ -169,12 +169,28 @@ class PlayerSkills:
                 combat_sequence_list.append(skill.id)
             else:
                 combat_sequence_list.append(None)
+        
+        # Convert buffs to serializable format
+        serialized_buffs = {}
+        for buff_type, buff_data in self.buffs.items():
+            serialized_buffs[buff_type] = {
+                "value": buff_data.get("value", 0),
+                "duration": buff_data.get("duration", 0)
+            }
+        
+        # Convert status effects to serializable format
+        serialized_status_effects = {}
+        for status_type, status_data in self.status_effects.items():
+            serialized_status_effects[status_type] = {
+                "value": status_data.get("value", 0),
+                "duration": status_data.get("duration", 0)
+            }
                 
         return {
             "skills": skills_list,
             "combat_sequence": combat_sequence_list,
-            "buffs": self.buffs,
-            "status_effects": self.status_effects
+            "buffs": serialized_buffs,
+            "status_effects": serialized_status_effects
         }
         
     def from_dict(self, data: Dict[str, Any]):

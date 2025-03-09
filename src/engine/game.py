@@ -111,8 +111,9 @@ class Game:
             
         try:
             player_data = self.player.to_dict()
-            combat_sequence = self.player.combat_sequence
-            success, message = self.save_manager.save_game(player_data, combat_sequence)
+            
+            # We don't need to pass combat_sequence separately since it's included in player_data
+            success, message = self.save_manager.save_game(player_data, None)
             
             if success:
                 self.ui_manager.show_notification("Game saved successfully!")
@@ -126,7 +127,7 @@ class Game:
             return False, error_msg
     
     def load_game(self):
-        success, player_data, combat_sequence = self.save_manager.load_game()
+        success, player_data = self.save_manager.load_game()
         
         if not success:
             self.ui_manager.show_notification("No save file found or load failed")
