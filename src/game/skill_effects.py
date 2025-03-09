@@ -32,8 +32,21 @@ def calculate_base_damage(user, params):
 
 def apply_weapon_scaling(user, base_damage, params):
     weapon_scaling = params.get("weapon_scaling", 0)
-    if weapon_scaling > 0 and hasattr(user, 'equipment') and user.equipment.get('weapon'):
-        base_damage += user.equipment['weapon'].damage * weapon_scaling
+    
+    if weapon_scaling <= 0:
+        return base_damage
+        
+    weapon = None
+    
+    if hasattr(user, 'get_weapon'):
+        weapon = user.get_weapon()
+    elif hasattr(user, 'equipment') and user.equipment.get('weapon'):
+        weapon = user.equipment['weapon']
+    
+    if weapon and hasattr(weapon, 'damage'):
+        damage_from_weapon = int(weapon.damage * weapon_scaling)
+        base_damage += damage_from_weapon
+    
     return base_damage
 
 def apply_stat_scaling(user, base_damage, params):
@@ -41,7 +54,9 @@ def apply_stat_scaling(user, base_damage, params):
     if hasattr(user, 'get_stats'):
         stats = user.get_stats()
         for stat, scale in stat_scaling.items():
-            base_damage += stats.get(stat, 0) * scale
+            stat_value = stats.get(stat, 0)
+            damage_from_stat = stat_value * scale
+            base_damage += damage_from_stat
     return base_damage
 
 def apply_variance(base_value, params, is_damage=True):
@@ -53,7 +68,8 @@ def apply_variance(base_value, params, is_damage=True):
         variance_max = params.get("variance_max", 1.1)
         
     variance = random.uniform(variance_min, variance_max)
-    return max(1, int(base_value * variance))
+    final_value = max(1, int(base_value * variance))
+    return final_value
 
 def format_damage_message(user, target, damage, params):
     message = params.get("message", "")

@@ -20,64 +20,30 @@ class PlayerSkills:
         self._initialize_defaults()
     
     def _initialize_defaults(self):
-        basic_attack = self.skill_manager.get_skill("basic_attack")
-        if not basic_attack:
-            basic_attack_data = {
-                "name": "Basic Attack",
-                "description": "A simple attack with your weapon",
-                "effects": [
-                    {
-                        "type": "damage",
-                        "params": {
-                            "base_value": 5,
-                            "stat_scaling": {"strength": 1.0}
-                        }
-                    }
-                ]
-            }
-            basic_attack = self.skill_manager.create_skill("basic_attack", basic_attack_data)
+        basic_attack = self.skill_manager.get_skill("basic_attack")  
+        defend = self.skill_manager.get_skill("defend")        
+        healing = self.skill_manager.get_skill("healing")
         
-        defend = self.skill_manager.get_skill("defend")
-        if not defend:
-            defend_data = {
-                "name": "Defend",
-                "description": "Take a defensive stance",
-                "effects": [
-                    {
-                        "type": "buff",
-                        "params": {
-                            "buff_type": "defense",
-                            "value": 5,
-                            "duration": 2
-                        }
-                    }
-                ]
-            }
-            defend = self.skill_manager.create_skill("defend", defend_data)
+        if basic_attack:
+            self.learn_skill(basic_attack)
+            self.combat_sequence = [basic_attack] * 3
+        else:
+            print("Warning: basic_attack skill not found")
         
-        heal = self.skill_manager.get_skill("heal")
-        if not heal:
-            heal_data = {
-                "name": "Heal",
-                "description": "Recover some health",
-                "effects": [
-                    {
-                        "type": "heal",
-                        "params": {
-                            "base_value": 10,
-                            "stat_scaling": {"wisdom": 1.0}
-                        }
-                    }
-                ]
-            }
-            heal = self.skill_manager.create_skill("heal", heal_data)
-        
-        self.learn_skill(basic_attack)
-        self.combat_sequence = [basic_attack] * 3
-        self.learn_skill(defend)
-        self.learn_skill(heal)
+        if defend:
+            self.learn_skill(defend)
+        else:
+            print("Warning: defend skill not found")
+            
+        if healing:
+            self.learn_skill(healing)
+        else:
+            print("Warning: healing skill not found")
     
     def learn_skill(self, skill: Skill) -> bool:
+        if not skill:
+            return False
+            
         for existing_skill in self.skills:
             if existing_skill.id == skill.id:
                 return False
@@ -160,12 +126,12 @@ class PlayerSkills:
     def to_dict(self) -> Dict[str, Any]:
         skills_list = []
         for skill in self.skills:
-            if hasattr(skill, 'id'):
+            if hasattr(skill, 'id') and skill.id:
                 skills_list.append(skill.id)
                 
         combat_sequence_list = []
         for skill in self.combat_sequence:
-            if skill and hasattr(skill, 'id'):
+            if skill and hasattr(skill, 'id') and skill.id:
                 combat_sequence_list.append(skill.id)
             else:
                 combat_sequence_list.append(None)

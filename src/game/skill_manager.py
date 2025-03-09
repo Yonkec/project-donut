@@ -56,12 +56,4 @@ class SkillManager:
         register_default_effects(self)
         
     def create_default_skills(self) -> None:
-        from .skill_factory import SkillFactory
-        
-        SkillFactory.create_basic_attack(self)
-        SkillFactory.create_defend(self)
-        SkillFactory.create_fireball(self)
-        SkillFactory.create_heal(self)
-        SkillFactory.create_quick_strike(self)
-        SkillFactory.create_power_attack(self)
-        SkillFactory.create_poison_dart(self)
+        pass  # All skills are now loaded from the skills.json file

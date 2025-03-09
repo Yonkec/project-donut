@@ -1,5 +1,6 @@
 {
   "basic_attack": {
+    "id": "basic_attack",
     "name": "Basic Attack",
     "description": "A simple weapon attack",
     "cooldown": 0,
@@ -10,7 +11,7 @@
       {
         "type": "damage",
         "params": {
-          "weapon_scaling": 1.0,
+          "weapon_scaling": 1.5,
           "stat_scaling": {"strength": 0.1},
           "variance_min": 0.8,
           "variance_max": 1.2,
@@ -20,6 +21,7 @@
     ]
   },
   "defend": {
+    "id": "defend",
     "name": "Defend",
     "description": "Take a defensive stance to reduce incoming damage",
     "cooldown": 1,
@@ -38,6 +40,7 @@
     ]
   },
   "power_attack": {
+    "id": "power_attack",
     "name": "Power Attack",
     "description": "A powerful attack with higher damage",
     "cooldown": 2,
@@ -58,6 +61,7 @@
     ]
   },
   "healing": {
+    "id": "healing",
     "name": "Healing",
     "description": "Restore some health",
     "cooldown": 3,
@@ -78,6 +82,7 @@
     ]
   },
   "quick_strike": {
+    "id": "quick_strike",
     "name": "Quick Strike",
     "description": "A swift attack that has a chance to strike multiple times",
     "cooldown": 1,
@@ -105,6 +110,7 @@
     ]
   },
   "fireball": {
+    "id": "fireball",
     "name": "Fireball",
     "description": "Launches a ball of fire at the target",
     "cooldown": 2,
@@ -128,6 +134,7 @@
     ]
   },
   "ice_spike": {
+    "id": "ice_spike",
     "name": "Ice Spike",
     "description": "Hurls a spike of ice at the target",
     "cooldown": 2,
@@ -161,6 +168,7 @@
     ]
   },
   "vampiric_strike": {
+    "id": "vampiric_strike",
     "name": "Vampiric Strike",
     "description": "Damages enemy and heals self",
     "cooldown": 3,
@@ -189,6 +197,7 @@
     ]
   },
   "whirlwind": {
+    "id": "whirlwind",
     "name": "Whirlwind",
     "description": "Spin and hit all enemies (placeholder for future multi-target support)",
     "cooldown": 4,
@@ -213,6 +222,7 @@
     ]
   },
   "poison_dart": {
+    "id": "poison_dart",
     "name": "Poison Dart",
     "description": "Fires a poisoned dart that deals damage over time",
     "cooldown": 3,
@@ -244,6 +254,7 @@
     ]
   },
   "regenerate": {
+    "id": "regenerate",
     "name": "Regenerate",
     "description": "Regenerate health over time",
     "cooldown": 4,
@@ -271,6 +282,7 @@
     ]
   },
   "shield_bash": {
+    "id": "shield_bash",
     "name": "Shield Bash",
     "description": "Bash with a shield, damaging and stunning the enemy",
     "cooldown": 3,
@@ -299,6 +311,7 @@
     ]
   },
   "shadow_step": {
+    "id": "shadow_step",
     "name": "Shadow Step",
     "description": "Move quickly through the shadows for a surprise attack",
     "cooldown": 3,
@@ -326,6 +339,7 @@
     ]
   },
   "bone_spear": {
+    "id": "bone_spear",
     "name": "Bone Spear",
     "description": "Launches a spear made of bone that pierces through defenses",
     "cooldown": 3,
@@ -345,6 +359,7 @@
     ]
   },
   "battle_cry": {
+    "id": "battle_cry",
     "name": "Battle Cry",
     "description": "Let out a fierce battle cry to boost strength",
     "cooldown": 4,
@@ -364,6 +379,7 @@
     ]
   },
   "web_shot": {
+    "id": "web_shot",
     "name": "Web Shot",
     "description": "Fire a sticky web to slow the target",
     "cooldown": 3,
@@ -392,6 +408,7 @@
     ]
   },
   "flame_breath": {
+    "id": "flame_breath",
     "name": "Flame Breath",
     "description": "Breathe a cone of fire at the enemy",
     "cooldown": 4,

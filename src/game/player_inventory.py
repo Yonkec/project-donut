@@ -17,11 +17,14 @@ class PlayerInventory:
     def _initialize_defaults(self):
         from .items import Weapon, Armor
         
-        starter_sword = Weapon("Wooden Sword", 2, 0, 0)
+        starter_sword = Weapon("Wooden Sword", 5, 0, 0)
         starter_armor = Armor("Cloth Tunic", 1, 0, 0)
         
         self.equip_item(starter_sword)
         self.equip_item(starter_armor)
+        
+        if not self.equipment["weapon"] or not self.equipment["armor"]:
+            raise RuntimeError("Failed to equip starter equipment")
 
     def get_equipment_stats(self) -> Dict[str, int]:
         stats = {}
@@ -37,15 +40,33 @@ class PlayerInventory:
         return stats
         
     def equip_item(self, item: Equipment) -> bool:
-        if item.slot in self.equipment:
-            old_item = self.equipment[item.slot]
-            if old_item:
-                self.inventory.append(old_item)
-                
-            self.equipment[item.slot] = item
-            self.player._update_hp_after_stat_change()
-            return True
-        return False
+        if item.slot not in self.equipment:
+            return False
+            
+        from .items import Weapon, Armor, Helmet, Boots, Accessory
+        
+        valid_slot = False
+        if item.slot == "weapon" and isinstance(item, Weapon):
+            valid_slot = True
+        elif item.slot == "armor" and isinstance(item, Armor):
+            valid_slot = True
+        elif item.slot == "helmet" and isinstance(item, Helmet):
+            valid_slot = True
+        elif item.slot == "boots" and isinstance(item, Boots):
+            valid_slot = True
+        elif item.slot == "accessory" and isinstance(item, Accessory):
+            valid_slot = True
+            
+        if not valid_slot:
+            return False
+        
+        old_item = self.equipment[item.slot]
+        if old_item:
+            self.inventory.append(old_item)
+        
+        self.equipment[item.slot] = item
+        self.player._update_hp_after_stat_change()
+        return True
         
     def unequip_item(self, slot: str) -> bool:
         if slot in self.equipment and self.equipment[slot]:

@@ -45,6 +45,14 @@ class Player:
                 return getattr(self.skills_manager, name)
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
         
+    def get_weapon(self):
+        if hasattr(self, 'inventory') and self.inventory:
+            if hasattr(self.inventory, 'equipment') and self.inventory.equipment:
+                weapon = self.inventory.equipment.get('weapon')
+                if weapon and hasattr(weapon, 'damage'):
+                    return weapon
+        return None
+        
     def _calculate_max_hp(self) -> int:
         base_hp = 50
         con_bonus = self.base_stats["constitution"] * 5

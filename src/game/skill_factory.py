@@ -48,11 +48,11 @@ class SkillBuilder:
         return self
         
     def add_damage_effect(self, base_value: int, 
-                         weapon_scaling: float = 0.0,
-                         stat_scaling: Dict[str, float] = None,
-                         variance_min: float = 0.8,
-                         variance_max: float = 1.2,
-                         message: str = "") -> 'SkillBuilder':
+                            weapon_scaling: float = 0.0,
+                            stat_scaling: Dict[str, float] = None,
+                            variance_min: float = 0.8,
+                            variance_max: float = 1.2,
+                            message: str = "") -> 'SkillBuilder':
         effect = {
             "type": "damage",
             "params": {
@@ -73,10 +73,10 @@ class SkillBuilder:
         return self
         
     def add_healing_effect(self, base_value: int,
-                          stat_scaling: Dict[str, float] = None,
-                          variance_min: float = 0.9,
-                          variance_max: float = 1.1,
-                          message: str = "") -> 'SkillBuilder':
+                                stat_scaling: Dict[str, float] = None,
+                                variance_min: float = 0.9,
+                                variance_max: float = 1.1,
+                                message: str = "") -> 'SkillBuilder':
         effect = {
             "type": "healing",
             "params": {
@@ -96,7 +96,7 @@ class SkillBuilder:
         return self
         
     def add_buff_effect(self, buff_type: str, value: int, duration: int,
-                       message: str = "") -> 'SkillBuilder':
+                            message: str = "") -> 'SkillBuilder':
         effect = {
             "type": "buff",
             "params": {
@@ -113,7 +113,7 @@ class SkillBuilder:
         return self
         
     def add_status_effect(self, status_type: str, value: int, duration: int,
-                         chance: float = 1.0, message: str = "") -> 'SkillBuilder':
+                                chance: float = 1.0, message: str = "") -> 'SkillBuilder':
         effect = {
             "type": "status",
             "params": {
@@ -205,102 +205,33 @@ class SkillBuilder:
 
 class SkillFactory:
     @staticmethod
-    def create_basic_attack(skill_manager: SkillManager, weapon_scaling: float = 1.0) -> Skill:
-        return (SkillBuilder("basic_attack", "Basic Attack", "A simple attack with your weapon")
-                .with_action_cost(3.0)
-                .with_sound("attack")
-                .with_category("physical")
-                .with_tags(["attack", "physical", "basic"])
-                .add_damage_effect(5, weapon_scaling=weapon_scaling, 
-                                  stat_scaling={"strength": 0.5})
-                .build(skill_manager))
-    
+    def create_skill_from_data(skill_manager: SkillManager, skill_id: str, skill_data: Dict[str, Any]) -> Optional[Skill]:
+        try:
+            return skill_manager.create_skill(skill_id, skill_data)
+        except ValueError as e:
+            print(f"Error creating skill {skill_id}: {e}")
+            return None
+            
     @staticmethod
-    def create_defend(skill_manager: SkillManager) -> Skill:
-        return (SkillBuilder("defend", "Defend", "Take a defensive stance to reduce incoming damage")
-                .with_action_cost(2.0)
-                .with_category("defensive")
-                .with_tags(["defensive", "buff"])
-                .add_buff_effect("defense", 3, 1, 
-                                message="{user} takes a defensive stance!")
-                .build(skill_manager))
-    
-    @staticmethod
-    def create_fireball(skill_manager: SkillManager) -> Skill:
-        return (SkillBuilder("fireball", "Fireball", "Hurl a ball of fire at your enemy")
-                .with_energy_cost(10)
-                .with_action_cost(5.0)
-                .with_cooldown(2)
-                .with_sound("attack")
-                .with_category("magic")
-                .with_tags(["attack", "magic", "fire"])
-                .add_damage_effect(15, stat_scaling={"intelligence": 1.5},
-                                  message="{user} hurls a fireball at {target} for {damage} damage!")
-                .add_min_stat_condition("intelligence", 12)
-                .build(skill_manager))
-    
-    @staticmethod
-    def create_heal(skill_manager: SkillManager) -> Skill:
-        return (SkillBuilder("heal", "Heal", "Restore health to yourself or an ally")
-                .with_energy_cost(15)
-                .with_action_cost(4.0)
-                .with_cooldown(3)
-                .with_sound("heal")
-                .with_category("magic")
-                .with_tags(["healing", "magic", "support"])
-                .add_healing_effect(20, stat_scaling={"wisdom": 1.5},
-                                   message="{user} heals {target} for {healing} health!")
-                .add_min_stat_condition("wisdom", 12)
-                .build(skill_manager))
-    
-    @staticmethod
-    def create_quick_strike(skill_manager: SkillManager) -> Skill:
-        return (SkillBuilder("quick_strike", "Quick Strike", "A fast attack that strikes multiple times")
-                .with_action_cost(4.0)
-                .with_cooldown(2)
-                .with_sound("attack")
-                .with_category("physical")
-                .with_tags(["attack", "physical", "multi"])
-                .add_multi_hit_effect(4, min_hits=2, max_hits=3, 
-                                     stat_scaling={"dexterity": 0.8},
-                                     message="{user} strikes {target} with lightning speed!")
-                .add_min_stat_condition("dexterity", 12)
-                .build(skill_manager))
-    
-    @staticmethod
-    def create_power_attack(skill_manager: SkillManager) -> Skill:
-        return (SkillBuilder("power_attack", "Power Attack", "A powerful attack that deals heavy damage")
-                .with_action_cost(6.0)
-                .with_cooldown(3)
-                .with_sound("attack")
-                .with_category("physical")
-                .with_tags(["attack", "physical", "heavy"])
-                .add_damage_effect(20, weapon_scaling=1.5, stat_scaling={"strength": 2.0},
-                                  message="{user} delivers a devastating blow to {target} for {damage} damage!")
-                .add_min_stat_condition("strength", 14)
-                .build(skill_manager))
-    
-    @staticmethod
-    def create_poison_dart(skill_manager: SkillManager) -> Skill:
-        return (SkillBuilder("poison_dart", "Poison Dart", "Fire a poisoned dart that deals damage over time")
-                .with_action_cost(4.0)
-                .with_cooldown(4)
-                .with_category("physical")
-                .with_tags(["attack", "physical", "poison"])
-                .add_damage_effect(5, stat_scaling={"dexterity": 0.5})
-                .add_status_effect("poison", 3, 3, chance=0.8,
-                                  message="{target} is poisoned and will take damage over time!")
-                .build(skill_manager))
-    
+    def create_skill(skill_manager: SkillManager, skill_id: str) -> Optional[Skill]:
+        skill_data = skill_manager.database.get_skill_data(skill_id)
+        if not skill_data:
+            print(f"Skill data not found for ID: {skill_id}")
+            return None
+            
+        return SkillFactory.create_skill_from_data(skill_manager, skill_id, skill_data)
+        
     @staticmethod
     def create_custom_skill(skill_manager: SkillManager, 
-                           skill_id: str, 
-                           name: str, 
-                           description: str,
-                           builder_func: Callable[[SkillBuilder], SkillBuilder]) -> Skill:
+                            skill_id: str, 
+                            name: str, 
+                            description: str,
+                            builder_func: Callable[[SkillBuilder], SkillBuilder]) -> Skill:
         builder = SkillBuilder(skill_id, name, description)
         builder = builder_func(builder)
         return builder.build(skill_manager)
+    
+
 
 
 class SkillValidator:
