@@ -37,7 +37,23 @@ class ScrollableList(UIElement):
                     # Check if clicking on an item
                     item_idx = self.get_item_at_position(event.pos)
                     if item_idx is not None:
-                        # Start dragging
+                        item = self.items[item_idx]
+                        
+                        # Check if clicking on a button within the item
+                        rel_x = event.pos[0] - self.rect.x
+                        rel_y = event.pos[1] - (self.rect.y + (item_idx - self.scroll_offset) * self.item_height)
+                        
+                        # Check for "Add" button
+                        if hasattr(item, 'add_callback') and rel_x > self.rect.width - 90:
+                            item.add_callback(item.skill)
+                            return True
+                            
+                        # Check for "Remove" button
+                        if hasattr(item, 'remove_callback') and rel_x > self.rect.width - 90:
+                            item.remove_callback()
+                            return True
+                            
+                        # If not clicking on a button, start dragging
                         self.dragging = True
                         self.drag_item = item_idx
                         self.drag_start_y = event.pos[1]

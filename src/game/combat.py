@@ -174,8 +174,8 @@ class CombatManager:
         
         # Check if skill can be used
         if not skill or not skill.can_use(self.player):
-            # Skill on cooldown, do nothing and wait
-            self.log_message(f"Waiting for {skill.name} to be ready...")
+            # Do not log messages for insufficient action points - silently wait
+            # for enough AP to accumulate before taking action
             return
             
         # Use the skill
@@ -203,7 +203,8 @@ class CombatManager:
         
         # If no skill is available (not enough AP or all on cooldown), wait
         if not skill:
-            self.log_message(f"{self.current_enemy.name} is waiting to gain more action points...")
+            # Do not log messages for insufficient action points - silently wait
+            # for enough AP to accumulate before taking action
             return
         
         # Use the skill

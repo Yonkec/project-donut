@@ -167,7 +167,7 @@ class StateUIBuilder:
                         text_y = button_y + (button_height - button_text.get_height()) // 2
                         surface.blit(button_text, (text_x, text_y))
                 
-                item = AvailableSkillItem(skill, lambda s=skill: add_skill_callback(s))
+                item = AvailableSkillItem(skill, add_skill_callback)
                 skills_list.add_item(item)
         
         self.ui_manager.add_element(Button(self.screen_width // 2 - 80, self.screen_height - 120, 160, 40, "Start Combat", 
