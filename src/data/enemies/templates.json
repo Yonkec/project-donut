@@ -1,0 +1,28 @@
+{
+  "basic_enemy": {
+    "name": "Basic Enemy",
+    "level": 1,
+    "base_stats": {
+      "strength": 8,
+      "dexterity": 8,
+      "constitution": 8,
+      "intelligence": 8,
+      "wisdom": 8
+    },
+    "skills": ["basic_attack"],
+    "behavior": "random"
+  },
+  "humanoid": {
+    "name": "Humanoid",
+    "level": 1,
+    "base_stats": {
+      "strength": 10,
+      "dexterity": 10,
+      "constitution": 10,
+      "intelligence": 10,
+      "wisdom": 10
+    },
+    "skills": ["basic_attack", "defend"],
+    "behavior": "smart"
+  }
+}

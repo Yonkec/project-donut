@@ -1,6 +1,7 @@
 from typing import Dict, List, Any, Optional, Callable
 import random
 from .enemy_database import EnemyDatabase
+from .skill import Skill
 from .skill_manager import SkillManager
 from .skill_database import SkillDatabase
 from .action_manager import ActionManager
@@ -39,6 +40,26 @@ class Enemy:
             skill = self.skill_manager.get_skill(skill_id)
             if skill:
                 self.skills.append(skill)
+        
+        # Ensure we have at least a basic attack
+        if not self.skills:
+            basic_attack = self.skill_manager.get_skill("basic_attack")
+            if not basic_attack:
+                basic_attack_data = {
+                    "name": "Basic Attack",
+                    "description": "A simple attack",
+                    "effects": [
+                        {
+                            "type": "damage",
+                            "params": {
+                                "base_value": 5,
+                                "stat_scaling": {"strength": 1.0}
+                            }
+                        }
+                    ]
+                }
+                basic_attack = self.skill_manager.create_skill("basic_attack", basic_attack_data)
+            self.skills.append(basic_attack)
         
         # Combat state
         self.buffs = {}

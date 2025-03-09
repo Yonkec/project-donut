@@ -5,10 +5,12 @@ import os
 import pygame
 import logging
 from .player import Player
-from .enemy import Enemy
-from .skills import get_enemy_manager
+from .enemy import Enemy, create_random_enemy
+from .skills import create_skill_manager
 from .items import Item, create_health_potion
 from .action_manager import ActionManager
+from .enemy_database import EnemyDatabase
+from .enemy_manager import EnemyManager
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -54,30 +56,39 @@ class CombatManager:
         self.player_sequence_index = 0
         self.action_delay = 0.8  # seconds between actions
         self.last_action_time = 0
-        self.action_manager = player.action_manager if hasattr(player, 'action_manager') else None
-        self.enemy_manager = get_enemy_manager(self.action_manager)
+        self.action_manager = player.action_manager if hasattr(player, 'action_manager') else ActionManager()
+        
+        # Create skill and enemy managers
+        self.skill_manager = create_skill_manager()
+        self.enemy_database = EnemyDatabase()
+        self.enemy_manager = EnemyManager(self.enemy_database, self.skill_manager, self.action_manager)
+        self.enemy_manager.load_all_enemies()
         
         # Initialize sounds
         init_combat_sounds()
         
     def start_new_battle(self, enemy_level: Optional[int] = None):
-        """Start a new battle with a random enemy"""
         if enemy_level is None:
             enemy_level = max(1, self.player.level)
             
-        self.current_enemy = self.enemy_manager.create_random_enemy(enemy_level)
+        self.current_enemy = create_random_enemy(enemy_level, self.player.level)
         
         if not self.current_enemy:
             # Fallback to create a basic enemy if no enemies are defined
-            self.current_enemy = self.enemy_manager.create_enemy(
-                "goblin", 
-                {
-                    "name": f"Goblin Lv.{enemy_level}",
-                    "level": enemy_level,
-                    "skills": ["basic_attack"]
+            enemy_data = {
+                "name": f"Goblin Lv.{enemy_level}",
+                "level": enemy_level,
+                "skills": ["basic_attack"],
+                "stats": {
+                    "strength": 5 + enemy_level,
+                    "dexterity": 7 + enemy_level,
+                    "intelligence": 3 + enemy_level,
+                    "vitality": 4 + enemy_level
                 },
-                enemy_level
-            )
+                "max_hp": 20 + (enemy_level * 5),
+                "max_energy": 10 + (enemy_level * 2)
+            }
+            self.current_enemy = Enemy("goblin", enemy_data, self.skill_manager, self.action_manager)
             
         # Make sure the enemy uses the same action manager as the player
         if self.action_manager and hasattr(self.current_enemy, 'id'):
