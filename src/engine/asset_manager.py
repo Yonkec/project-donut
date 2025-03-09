@@ -34,6 +34,8 @@ class AssetManager:
                         image = pygame.transform.scale(image, (self.screen_width, self.screen_height))
                         
                     self.images[asset_type] = image
+                else:
+                    print(f"Image not found: {path}")
         except Exception as e:
             print(f"Error loading images: {e}")
     
