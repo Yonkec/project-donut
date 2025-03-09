@@ -96,7 +96,7 @@ class PlayerSkills:
         return False
         
     def add_to_combat_sequence(self, skill: Skill, position: int) -> bool:
-        if skill in self.skills and 0 <= position < 5:  # Limit to 5 skills in sequence
+        if skill in self.skills:
             if len(self.combat_sequence) <= position:
                 self.combat_sequence.extend([None] * (position - len(self.combat_sequence) + 1))
             self.combat_sequence[position] = skill
