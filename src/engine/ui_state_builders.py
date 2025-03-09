@@ -428,8 +428,7 @@ class StateUIBuilder:
         if action_manager and hasattr(player, 'id'):
             player_action = action_manager.get_current_action(player.id)
         
-        max_ap = 20.0
-        ap_ratio = max(0, min(1, player_action / max_ap))
+        ap_ratio = max(0, min(1, player_action))
         ap_bar_y = hp_bar_y + label_spacing
         player_ap_bar = self.ui_manager.add_element(ProgressBar(
             player_section_x, 
@@ -443,7 +442,7 @@ class StateUIBuilder:
         self.ui_manager.add_element(Label(
             player_section_x, 
             ap_bar_y + bar_height + int(self.screen_height * 0.01), 
-            f"AP: {player_action:.1f}/{max_ap}", 
+            f"AP: {player_action:.1f}", 
             (100, 200, 255), 
             20
         ))
@@ -478,7 +477,7 @@ class StateUIBuilder:
         if enemy and action_manager and hasattr(enemy, 'id'):
             enemy_action = action_manager.get_current_action(enemy.id)
         
-        ap_ratio = max(0, min(1, enemy_action / max_ap))
+        ap_ratio = max(0, min(1, enemy_action))
         enemy_ap_bar_y = enemy_hp_bar_y + label_spacing
         enemy_ap_bar = self.ui_manager.add_element(ProgressBar(
             enemy_section_x, 
@@ -492,7 +491,7 @@ class StateUIBuilder:
         self.ui_manager.add_element(Label(
             enemy_section_x, 
             enemy_ap_bar_y + bar_height + int(self.screen_height * 0.01), 
-            f"AP: {enemy_action:.1f}/{max_ap}", 
+            f"AP: {enemy_action:.1f}", 
             (255, 150, 100), 
             20
         ))
