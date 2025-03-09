@@ -88,7 +88,23 @@ class Enemy:
         messages = []
         
         # Update buffs
+        messages.extend(self._update_buffs())
+        
+        # Update status effects
+        messages.extend(self._update_status_effects_internal())
+        
+        # Update action modifiers
+        if self.action_manager:
+            expired_modifiers = self.action_manager.update_action_modifiers(self.id)
+            for modifier in expired_modifiers:
+                messages.append(f"{self.name}'s {modifier} effect has expired.")
+            
+        return messages
+        
+    def _update_buffs(self) -> List[str]:
+        messages = []
         buffs_to_remove = []
+        
         for buff_type, buff_data in self.buffs.items():
             buff_data['duration'] -= 1
             if buff_data['duration'] <= 0:
@@ -97,27 +113,15 @@ class Enemy:
         
         for buff_type in buffs_to_remove:
             del self.buffs[buff_type]
+            
+        return messages
         
-        # Update status effects
+    def _update_status_effects_internal(self) -> List[str]:
+        messages = []
         statuses_to_remove = []
+        
         for status_type, status_data in self.status_effects.items():
-            if status_type == 'poison':
-                damage = status_data['value']
-                self.current_hp = max(0, self.current_hp - damage)
-                messages.append(f"{self.name} takes {damage} poison damage.")
-            elif status_type == 'regeneration':
-                healing = status_data['value']
-                self.current_hp = min(self.max_hp, self.current_hp + healing)
-                messages.append(f"{self.name} regenerates {healing} health.")
-            elif status_type == 'stunned':
-                messages.append(f"{self.name} is stunned and cannot act.")
-                if self.action_manager:
-                    self.action_manager.add_action_modifier(self.id, "stunned", -1.0, 1)
-            elif status_type == 'slowed':
-                slow_value = status_data.get('value', 0.5)
-                messages.append(f"{self.name} is slowed and gains action more slowly.")
-                if self.action_manager:
-                    self.action_manager.add_action_modifier(self.id, "slowed", -slow_value, 1)
+            messages.extend(self._process_status_effect(status_type, status_data))
             
             status_data['duration'] -= 1
             if status_data['duration'] <= 0:
@@ -126,21 +130,35 @@ class Enemy:
         
         for status_type in statuses_to_remove:
             del self.status_effects[status_type]
-        
-        if self.action_manager:
-            expired_modifiers = self.action_manager.update_action_modifiers(self.id)
-            for modifier in expired_modifiers:
-                messages.append(f"{self.name}'s {modifier} effect has expired.")
             
+        return messages
+        
+    def _process_status_effect(self, status_type: str, status_data: Dict[str, Any]) -> List[str]:
+        messages = []
+        
+        if status_type == 'poison':
+            damage = status_data['value']
+            self.current_hp = max(0, self.current_hp - damage)
+            messages.append(f"{self.name} takes {damage} poison damage.")
+        elif status_type == 'regeneration':
+            healing = status_data['value']
+            self.current_hp = min(self.max_hp, self.current_hp + healing)
+            messages.append(f"{self.name} regenerates {healing} health.")
+        elif status_type == 'stunned':
+            messages.append(f"{self.name} is stunned and cannot act.")
+            if self.action_manager:
+                self.action_manager.add_action_modifier(self.id, "stunned", -1.0, 1)
+        elif status_type == 'slowed':
+            slow_value = status_data.get('value', 0.5)
+            messages.append(f"{self.name} is slowed and gains action more slowly.")
+            if self.action_manager:
+                self.action_manager.add_action_modifier(self.id, "slowed", -slow_value, 1)
+                
         return messages
         
     def choose_action(self, player) -> Any:
         """Choose a skill to use in combat based on behavior pattern"""
-        if self.action_manager and hasattr(self, 'id'):
-            current_action = self.action_manager.get_current_action(self.id)
-            available_skills = [skill for skill in self.skills if skill.can_use(self) and current_action >= skill.action_cost]
-        else:
-            available_skills = [skill for skill in self.skills if skill.can_use(self)]
+        available_skills = self._get_available_skills()
         
         if not available_skills:
             return self.skills[0] if self.skills else None
@@ -148,25 +166,39 @@ class Enemy:
         if self.behavior == "random":
             return random.choice(available_skills)
         elif self.behavior == "weighted":
-            # Use skill weights if defined
-            weighted_skills = []
-            for skill in available_skills:
-                weight = self.skill_weights.get(skill.id, 1)
-                weighted_skills.extend([skill] * weight)
-            return random.choice(weighted_skills) if weighted_skills else available_skills[0]
+            return self._choose_weighted_skill(available_skills)
         elif self.behavior == "smart":
-            # Simple smart behavior - use healing when low HP, otherwise attack
-            if self.current_hp < self.max_hp * 0.3:
-                healing_skills = [s for s in available_skills if any(e["type"] == "healing" for e in s.effects)]
-                if healing_skills:
-                    return random.choice(healing_skills)
-            
-            # Otherwise use damage skills
-            damage_skills = [s for s in available_skills if any(e["type"] == "damage" for e in s.effects)]
-            if damage_skills:
-                return random.choice(damage_skills)
+            return self._choose_smart_skill(available_skills)
         
         # Default fallback
+        return random.choice(available_skills)
+        
+    def _get_available_skills(self) -> List[Any]:
+        if self.action_manager and hasattr(self, 'id'):
+            current_action = self.action_manager.get_current_action(self.id)
+            return [skill for skill in self.skills if skill.can_use(self) and current_action >= skill.action_cost]
+        else:
+            return [skill for skill in self.skills if skill.can_use(self)]
+            
+    def _choose_weighted_skill(self, available_skills: List[Any]) -> Any:
+        weighted_skills = []
+        for skill in available_skills:
+            weight = self.skill_weights.get(skill.id, 1)
+            weighted_skills.extend([skill] * weight)
+        return random.choice(weighted_skills) if weighted_skills else available_skills[0]
+        
+    def _choose_smart_skill(self, available_skills: List[Any]) -> Any:
+        # Use healing when low HP
+        if self.current_hp < self.max_hp * 0.3:
+            healing_skills = [s for s in available_skills if any(e["type"] == "healing" for e in s.effects)]
+            if healing_skills:
+                return random.choice(healing_skills)
+        
+        # Otherwise use damage skills
+        damage_skills = [s for s in available_skills if any(e["type"] == "damage" for e in s.effects)]
+        if damage_skills:
+            return random.choice(damage_skills)
+            
         return random.choice(available_skills)
 
 
@@ -180,16 +212,34 @@ class EnemyManager:
         self.action_manager = action_manager
         self.enemies = {}
         
+        self._initialize_skill_manager()
+    
+    def create_enemy(self, enemy_id: str, enemy_data: Dict[str, Any], level: Optional[int] = None) -> Enemy:
+        """Create an enemy from data, possibly using a template"""
+        processed_data = self._process_enemy_data(enemy_id, enemy_data, level)
+        return Enemy(enemy_id, processed_data, self.skill_manager, self.action_manager)
+        
+    def _initialize_skill_manager(self):
         # Ensure skill manager has loaded skills
         if not self.skill_manager.skills:
             self.skill_manager.register_default_effects()
             self.skill_manager.load_all_skills()
-    
-    def create_enemy(self, enemy_id: str, enemy_data: Dict[str, Any], level: Optional[int] = None) -> Enemy:
-        """Create an enemy from data, possibly using a template"""
+            
+    def _process_enemy_data(self, enemy_id: str, enemy_data: Dict[str, Any], level: Optional[int] = None) -> Dict[str, Any]:
+        processed_data = self._apply_template(enemy_data)
+        
+        # Override level if specified
+        if level is not None:
+            processed_data["level"] = level
+            processed_data = self._update_name_with_level(processed_data, level)
+            
+        return processed_data
+        
+    def _apply_template(self, enemy_data: Dict[str, Any]) -> Dict[str, Any]:
         if "template" in enemy_data and enemy_data["template"] in self.database.templates:
             # Start with template and override with specific data
             template = self.database.get_template(enemy_data["template"]).copy()
+            
             for key, value in enemy_data.items():
                 if key != "template":
                     if key == "skills" and "skills" in template:
@@ -200,21 +250,16 @@ class EnemyManager:
                             template[key] = value
                     else:
                         template[key] = value
-            enemy_data = template
+                        
+            return template
+        return enemy_data
         
-        # Override level if specified
-        if level is not None:
-            enemy_data["level"] = level
-            
-            # Update name if it contains level
-            if "name" in enemy_data and "Lv." in enemy_data["name"]:
-                name_parts = enemy_data["name"].split("Lv.")
-                if len(name_parts) > 1:
-                    enemy_data["name"] = f"{name_parts[0]}Lv.{level}"
-        
-        # Create the enemy object
-        enemy = Enemy(enemy_id, enemy_data, self.skill_manager, self.action_manager)
-        return enemy
+    def _update_name_with_level(self, enemy_data: Dict[str, Any], level: int) -> Dict[str, Any]:
+        if "name" in enemy_data and "Lv." in enemy_data["name"]:
+            name_parts = enemy_data["name"].split("Lv.")
+            if len(name_parts) > 1:
+                enemy_data["name"] = f"{name_parts[0]}Lv.{level}"
+        return enemy_data
     
     def get_enemy(self, enemy_id: str, level: Optional[int] = None) -> Optional[Enemy]:
         """Get an enemy by ID with optional level override"""
@@ -234,6 +279,16 @@ class EnemyManager:
         if not all_enemies:
             return None
             
+        suitable_enemies = self._get_suitable_enemies(all_enemies, player_level)
+        
+        if not suitable_enemies:
+            return None
+        
+        # Choose a random enemy from suitable ones
+        enemy_id, enemy_data = random.choice(suitable_enemies)
+        return self.create_enemy(enemy_id, enemy_data, level)
+        
+    def _get_suitable_enemies(self, all_enemies: Dict[str, Dict[str, Any]], player_level: int) -> List[tuple]:
         # Filter enemies by player level requirement
         suitable_enemies = []
         for enemy_id, enemy_data in all_enemies.items():
@@ -245,7 +300,5 @@ class EnemyManager:
             # Fallback to basic enemies if no suitable ones found
             suitable_enemies = [(enemy_id, enemy_data) for enemy_id, enemy_data in all_enemies.items() 
                               if enemy_data.get("min_player_level", 1) == 1]
-        
-        # Choose a random enemy from suitable ones
-        enemy_id, enemy_data = random.choice(suitable_enemies)
-        return self.create_enemy(enemy_id, enemy_data, level)
+                              
+        return suitable_enemies

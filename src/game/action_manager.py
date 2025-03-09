@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, Callable
+from typing import Dict, List, Any, Optional, Callable, Set
 import random
 import logging
 
@@ -8,7 +8,7 @@ class ActionManager:
         self.action_consumers = {}
         
     def register_entity(self, entity_id: str, base_action_rate: float = 1.0):
-        logging.debug(f"ActionManager: Registering entity {entity_id} with base rate {base_action_rate}")
+        logging.debug(f"Registering entity {entity_id} with base rate {base_action_rate}")
         self.action_generators[entity_id] = {
             "base_rate": base_action_rate,
             "current_rate": base_action_rate,
@@ -19,21 +19,18 @@ class ActionManager:
             "next_skill": None,
             "skill_sequence": []
         }
-        logging.debug(f"ActionManager: Registered entities: {list(self.action_consumers.keys())}")
     
     def unregister_entity(self, entity_id: str):
-        if entity_id in self.action_generators:
-            del self.action_generators[entity_id]
-        if entity_id in self.action_consumers:
-            del self.action_consumers[entity_id]
+        self.action_generators.pop(entity_id, None)
+        self.action_consumers.pop(entity_id, None)
     
     def set_action_rate(self, entity_id: str, rate: float):
-        if entity_id in self.action_generators:
+        if self._entity_exists(entity_id):
             self.action_generators[entity_id]["base_rate"] = rate
             self._recalculate_action_rate(entity_id)
     
     def add_action_modifier(self, entity_id: str, modifier_id: str, value: float, duration: int = -1):
-        if entity_id in self.action_generators:
+        if self._entity_exists(entity_id):
             self.action_generators[entity_id]["modifiers"][modifier_id] = {
                 "value": value,
                 "duration": duration
@@ -41,35 +38,37 @@ class ActionManager:
             self._recalculate_action_rate(entity_id)
     
     def remove_action_modifier(self, entity_id: str, modifier_id: str):
-        if entity_id in self.action_generators and modifier_id in self.action_generators[entity_id]["modifiers"]:
+        if self._entity_exists(entity_id) and modifier_id in self.action_generators[entity_id]["modifiers"]:
             del self.action_generators[entity_id]["modifiers"][modifier_id]
             self._recalculate_action_rate(entity_id)
     
+    def _entity_exists(self, entity_id: str) -> bool:
+        return entity_id in self.action_generators and entity_id in self.action_consumers
+        
     def _recalculate_action_rate(self, entity_id: str):
         if entity_id not in self.action_generators:
             return
             
         base_rate = self.action_generators[entity_id]["base_rate"]
-        total_modifier = 0.0
-        
-        for modifier_id, modifier_data in self.action_generators[entity_id]["modifiers"].items():
-            total_modifier += modifier_data["value"]
+        total_modifier = sum(mod["value"] for mod in self.action_generators[entity_id]["modifiers"].values())
         
         # Apply modifiers (can be positive for haste or negative for slow)
         new_rate = max(0.0, base_rate * (1.0 + total_modifier))
         self.action_generators[entity_id]["current_rate"] = new_rate
     
-    def update_action_modifiers(self, entity_id: str):
+    def update_action_modifiers(self, entity_id: str) -> List[str]:
         if entity_id not in self.action_generators:
             return []
             
         expired_modifiers = []
-        for modifier_id, modifier_data in list(self.action_generators[entity_id]["modifiers"].items()):
+        modifiers = self.action_generators[entity_id]["modifiers"]
+        
+        for modifier_id, modifier_data in list(modifiers.items()):
             if modifier_data["duration"] > 0:
                 modifier_data["duration"] -= 1
                 if modifier_data["duration"] <= 0:
                     expired_modifiers.append(modifier_id)
-                    del self.action_generators[entity_id]["modifiers"][modifier_id]
+                    del modifiers[modifier_id]
         
         if expired_modifiers:
             self._recalculate_action_rate(entity_id)
@@ -77,13 +76,8 @@ class ActionManager:
         return expired_modifiers
     
     def get_current_action(self, entity_id: str) -> float:
-        logging.debug(f"ActionManager: Getting action for entity {entity_id}")
-        logging.debug(f"ActionManager: Registered entities: {list(self.action_consumers.keys())}")
         if entity_id in self.action_consumers:
-            action_points = self.action_consumers[entity_id]["current_action"]
-            logging.debug(f"ActionManager: Entity {entity_id} has {action_points} action points")
-            return action_points
-        logging.debug(f"ActionManager: Entity {entity_id} not found in action consumers")
+            return self.action_consumers[entity_id]["current_action"]
         return 0.0
     
     def get_action_rate(self, entity_id: str) -> float:
@@ -97,25 +91,18 @@ class ActionManager:
         return False
     
     def generate_action(self, entity_id: str, tick_time: float = 1.0) -> float:
-        logging.debug(f"ActionManager: Generating action for entity {entity_id}")
-        if entity_id not in self.action_generators or entity_id not in self.action_consumers:
-            logging.debug(f"ActionManager: Entity {entity_id} not registered properly")
+        if not self._entity_exists(entity_id):
             return 0.0
         
         # Don't generate action if stunned
         if self.is_stunned(entity_id):
-            logging.debug(f"ActionManager: Entity {entity_id} is stunned, no action generated")
             return 0.0
             
         rate = self.action_generators[entity_id]["current_rate"]
         action_gained = rate * tick_time
         
         # Add the action points
-        current_before = self.action_consumers[entity_id]["current_action"]
         self.action_consumers[entity_id]["current_action"] += action_gained
-        current_after = self.action_consumers[entity_id]["current_action"]
-        
-        logging.debug(f"ActionManager: Entity {entity_id} gained {action_gained} action points. Before: {current_before}, After: {current_after}")
         
         return action_gained
     
@@ -169,17 +156,16 @@ class ActionManager:
             self.action_consumers[entity_id]["next_skill"] = next_skill
     
     def cycle_skill_sequence(self, entity_id: str):
-        if entity_id not in self.action_consumers or not self.action_consumers[entity_id]["skill_sequence"]:
+        if entity_id not in self.action_consumers:
+            return
+            
+        sequence = self.action_consumers[entity_id]["skill_sequence"]
+        if not sequence:
             return
             
         # Move the first skill to the end of the sequence
-        sequence = self.action_consumers[entity_id]["skill_sequence"]
-        if sequence:
-            first_skill = sequence.pop(0)
-            sequence.append(first_skill)
-            
+        first_skill = sequence.pop(0)
+        sequence.append(first_skill)
+        
         # Set the next skill from the updated sequence
-        if sequence:
-            self.action_consumers[entity_id]["next_skill"] = sequence[0]
-        else:
-            self.action_consumers[entity_id]["next_skill"] = None
+        self.action_consumers[entity_id]["next_skill"] = sequence[0] if sequence else None

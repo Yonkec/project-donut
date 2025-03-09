@@ -94,13 +94,7 @@ class Player:
                 self.inventory.append(old_item)
                 
             self.equipment[item.slot] = item
-            
-            old_max_hp = self.max_hp
-            self.max_hp = self._calculate_max_hp()
-            
-            if old_max_hp != self.max_hp:
-                self.current_hp = int(self.current_hp * (self.max_hp / old_max_hp))
-                
+            self._update_hp_after_stat_change()
             return True
         return False
         
@@ -110,13 +104,7 @@ class Player:
             item = self.equipment[slot]
             self.inventory.append(item)
             self.equipment[slot] = None
-            
-            old_max_hp = self.max_hp
-            self.max_hp = self._calculate_max_hp()
-            
-            if old_max_hp != self.max_hp:
-                self.current_hp = int(self.current_hp * (self.max_hp / old_max_hp))
-                
+            self._update_hp_after_stat_change()
             return True
         return False
         
@@ -137,8 +125,7 @@ class Player:
                 
         skill = self.skill_manager.get_skill(skill_id)
         if skill:
-            self.skills.append(skill)
-            return True
+            return self.learn_skill(skill)
         return False
         
     def add_to_combat_sequence(self, skill: Skill, position: int) -> bool:
@@ -175,10 +162,16 @@ class Player:
         for stat in self.base_stats:
             self.base_stats[stat] += 2
             
-        old_max_hp = self.max_hp
         self.max_hp = self._calculate_max_hp()
         self.current_hp = self.max_hp
         
+    def _update_hp_after_stat_change(self):
+        old_max_hp = self.max_hp
+        self.max_hp = self._calculate_max_hp()
+        
+        if old_max_hp != self.max_hp:
+            self.current_hp = int(self.current_hp * (self.max_hp / old_max_hp))
+    
     def take_damage(self, amount: int) -> int:
         """Take damage and return the actual amount taken"""
         damage_reduction = 0
