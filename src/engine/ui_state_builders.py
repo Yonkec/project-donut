@@ -10,7 +10,7 @@ class StateUIBuilder:
         self.game = ui_manager.game
         self.screen_width, self.screen_height = pygame.display.get_surface().get_size()
         
-    def build_main_menu_ui(self, start_new_game_callback, load_game_callback, exit_game_callback):
+    def build_main_menu_ui(self, start_new_game_callback, load_game_callback, settings_callback, exit_game_callback):
         # Position buttons in the lower part of the screen to not overlap with title image
         button_width = 200
         button_height = 40
@@ -32,7 +32,10 @@ class StateUIBuilder:
         load_btn.enabled = self.game.save_manager.save_exists()
         self.ui_manager.add_element(load_btn)
         
-        self.ui_manager.add_element(Button(button_x, start_y + 120, button_width, button_height, "Exit", 
+        self.ui_manager.add_element(Button(button_x, start_y + 120, button_width, button_height, "Settings", 
+                                lambda: settings_callback()))
+        
+        self.ui_manager.add_element(Button(button_x, start_y + 180, button_width, button_height, "Exit", 
                                 lambda: exit_game_callback()))
         
     def build_character_ui(self, player):
@@ -286,6 +289,8 @@ class StateUIBuilder:
         ))
     
     def build_world_map_ui(self):
+        from .game import GameState
+        
         self.ui_manager.add_element(Label(20, 20, "World Map", (255, 215, 0), 36))
         
         # Map background
@@ -328,4 +333,84 @@ class StateUIBuilder:
         self.ui_manager.add_element(Button(
             self.screen_width - 180, 20, 160, 40, "Character",
             lambda: self.game.change_state(GameState.CHARACTER)
+        ))
+        
+    def build_settings_ui(self):
+        from .game import GameState
+        from .ui_elements import Slider
+        
+        # Title
+        self.ui_manager.add_element(Label(self.screen_width // 2 - 50, 20, "Settings", (255, 215, 0), 36))
+        
+        # Volume sliders
+        slider_width = 300
+        slider_height = 30
+        slider_x = self.screen_width // 2 - slider_width // 2
+        start_y = 100
+        spacing = 60
+        
+        # Master volume
+        master_slider = Slider(
+            slider_x, start_y, slider_width, slider_height,
+            min_value=0.0, max_value=1.0, initial_value=self.game.audio_manager.master_volume,
+            callback=self.game.audio_manager.set_master_volume,
+            label="Master Volume"
+        )
+        master_slider.ui_manager = self.ui_manager
+        self.ui_manager.add_element(master_slider)
+        
+        # Music volume
+        music_slider = Slider(
+            slider_x, start_y + spacing, slider_width, slider_height,
+            min_value=0.0, max_value=1.0, initial_value=self.game.audio_manager.music_volume,
+            callback=self.game.audio_manager.set_music_volume,
+            label="Music Volume"
+        )
+        music_slider.ui_manager = self.ui_manager
+        self.ui_manager.add_element(music_slider)
+        
+        # UI sounds volume
+        ui_slider = Slider(
+            slider_x, start_y + spacing * 2, slider_width, slider_height,
+            min_value=0.0, max_value=1.0, initial_value=self.game.audio_manager.ui_volume,
+            callback=self.game.audio_manager.set_ui_volume,
+            label="UI Sounds Volume"
+        )
+        ui_slider.ui_manager = self.ui_manager
+        self.ui_manager.add_element(ui_slider)
+        
+        # Sound effects volume
+        sfx_slider = Slider(
+            slider_x, start_y + spacing * 3, slider_width, slider_height,
+            min_value=0.0, max_value=1.0, initial_value=self.game.audio_manager.sfx_volume,
+            callback=self.game.audio_manager.set_sfx_volume,
+            label="Sound Effects Volume"
+        )
+        sfx_slider.ui_manager = self.ui_manager
+        self.ui_manager.add_element(sfx_slider)
+        
+        # Test sound buttons
+        button_width = 120
+        button_height = 30
+        button_x = self.screen_width // 2 - button_width // 2
+        
+        # Test UI sound button
+        self.ui_manager.add_element(Button(
+            slider_x, start_y + spacing * 4, button_width, button_height,
+            "Test UI Sound",
+            lambda: self.game.audio_manager.play_ui_click()
+        ))
+        
+        # Test combat sound button
+        self.ui_manager.add_element(Button(
+            slider_x + button_width + 20, start_y + spacing * 4, button_width, button_height,
+            "Test Combat Sound",
+            lambda: self.game.audio_manager.play_attack_sound()
+        ))
+        
+        # Back button
+        self.ui_manager.add_element(Button(
+            self.screen_width // 2 - button_width // 2, start_y + spacing * 5,
+            button_width, button_height, "Back",
+            lambda: self.game.change_state(GameState.MAIN_MENU)
         ))

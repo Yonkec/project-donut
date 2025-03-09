@@ -57,6 +57,7 @@ class UIManager:
             self.state_builder.build_main_menu_ui(
                 start_new_game_callback=self._start_new_game,
                 load_game_callback=self._load_game,
+                settings_callback=self._open_settings,
                 exit_game_callback=self._exit_game
             )
                                    
@@ -82,6 +83,9 @@ class UIManager:
         elif state == GameState.RESULTS:
             victory = self.game.combat_manager.victory if hasattr(self.game, 'combat_manager') else False
             self.state_builder.build_game_over()
+            
+        elif state == GameState.SETTINGS:
+            self.state_builder.build_settings_ui()
     
     def _start_new_game(self):
         from .game import GameState
@@ -94,6 +98,10 @@ class UIManager:
         
     def _exit_game(self):
         self.game.running = False
+        
+    def _open_settings(self):
+        from .game import GameState
+        self.game.change_state(GameState.SETTINGS)
         
     def play_drop_sound(self):
         self.audio_manager.play_ui_drop()

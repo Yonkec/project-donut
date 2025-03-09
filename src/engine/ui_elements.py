@@ -143,3 +143,106 @@ def draw_health_bar(surface, x, y, width, height, value, max_value, color=(0, 20
     text_surface = font.render(text, True, (255, 255, 255))
     text_rect = text_surface.get_rect(center=(x + width // 2, y + height // 2))
     surface.blit(text_surface, text_rect)
+    
+class Slider(UIElement):
+    def __init__(self, x: int, y: int, width: int, height: int, min_value: float = 0.0, 
+                 max_value: float = 1.0, initial_value: float = 0.5, 
+                 callback: Callable = None, label: str = ""):
+        super().__init__(x, y, width, height)
+        self.min_value = min_value
+        self.max_value = max_value
+        self._value = max(min_value, min(max_value, initial_value))
+        self.callback = callback
+        self.label = label
+        self.dragging = False
+        self.handle_radius = height // 2
+        self.track_height = max(4, height // 3)
+        self.ui_manager = None
+        
+    @property
+    def value(self):
+        return self._value
+        
+    @value.setter
+    def value(self, new_value):
+        old_value = self._value
+        self._value = max(self.min_value, min(self.max_value, new_value))
+        if self.callback and old_value != self._value:
+            self.callback(self._value)
+            
+    def get_handle_position(self):
+        value_range = self.max_value - self.min_value
+        if value_range == 0:
+            percentage = 0
+        else:
+            percentage = (self._value - self.min_value) / value_range
+            
+        return self.rect.x + int(percentage * (self.rect.width - 2 * self.handle_radius)) + self.handle_radius
+    
+    def set_value_from_position(self, x_pos):
+        rel_x = max(self.rect.x + self.handle_radius, min(x_pos, self.rect.x + self.rect.width - self.handle_radius))
+        percentage = (rel_x - (self.rect.x + self.handle_radius)) / (self.rect.width - 2 * self.handle_radius)
+        self.value = self.min_value + percentage * (self.max_value - self.min_value)
+        
+    def handle_event(self, event) -> bool:
+        if not self.visible or not self.enabled:
+            return False
+            
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            handle_pos = self.get_handle_position()
+            handle_rect = pygame.Rect(handle_pos - self.handle_radius, self.rect.y, 
+                                    self.handle_radius * 2, self.rect.height)
+                                    
+            if handle_rect.collidepoint(event.pos) or self.rect.collidepoint(event.pos):
+                self.dragging = True
+                self.set_value_from_position(event.pos[0])
+                if self.ui_manager:
+                    self.ui_manager.play_drop_sound()
+                return True
+                
+        elif event.type == pygame.MOUSEMOTION and self.dragging:
+            self.set_value_from_position(event.pos[0])
+            return True
+            
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:
+            self.dragging = False
+            return True
+            
+        return False
+        
+    def render(self, surface):
+        if not self.visible:
+            return
+            
+        # Draw label if exists
+        if self.label:
+            font = pygame.font.SysFont(None, 24)
+            label_surface = font.render(self.label, True, (220, 220, 220))
+            surface.blit(label_surface, (self.rect.x, self.rect.y - 25))
+            
+        # Draw track
+        track_y = self.rect.y + (self.rect.height - self.track_height) // 2
+        track_rect = pygame.Rect(self.rect.x + self.handle_radius, track_y, 
+                               self.rect.width - 2 * self.handle_radius, self.track_height)
+        pygame.draw.rect(surface, (80, 80, 80), track_rect)
+        
+        # Draw filled portion of track
+        handle_pos = self.get_handle_position()
+        filled_width = handle_pos - self.rect.x
+        if filled_width > self.handle_radius:
+            filled_rect = pygame.Rect(self.rect.x + self.handle_radius, track_y, 
+                                    filled_width - self.handle_radius, self.track_height)
+            pygame.draw.rect(surface, (100, 100, 200), filled_rect)
+        
+        # Draw handle
+        handle_rect = pygame.Rect(handle_pos - self.handle_radius, self.rect.y, 
+                                self.handle_radius * 2, self.rect.height)
+        pygame.draw.circle(surface, (150, 150, 220), (handle_pos, self.rect.y + self.rect.height // 2), 
+                         self.handle_radius)
+        
+        # Draw value text
+        value_text = f"{int(self._value * 100)}%" if self.max_value == 1.0 else f"{self._value:.1f}"
+        font = pygame.font.SysFont(None, 20)
+        text_surface = font.render(value_text, True, (220, 220, 220))
+        text_rect = text_surface.get_rect(midleft=(self.rect.right + 10, self.rect.y + self.rect.height // 2))
+        surface.blit(text_surface, text_rect)

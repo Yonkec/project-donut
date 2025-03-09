@@ -18,6 +18,7 @@ class GameState(Enum):
     COMBAT_SETUP = auto()
     COMBAT = auto()
     RESULTS = auto()
+    SETTINGS = auto()
 
 class Game:
     def __init__(self, width: int = 800, height: int = 600):
